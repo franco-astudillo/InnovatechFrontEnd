@@ -11,25 +11,39 @@ const MainLayout = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <nav style={{ width: '250px', background: '#2c3e50', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-        <h3>Innovatech App</h3>
-        <hr style={{ borderColor: '#34495e', width: '100%' }} />
+    <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+      
+      {/* Navbar con el fondo Azul Pizarra Oscuro del login */}
+      <nav style={{ width: '250px', background: '#0F172A', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column'}}>
+        {/* Cambio de nombre solicitado */}
+        <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem' }}>Plataforma Innovatech</h3>
+        
+        {/* Línea divisoria en un gris/azul sutil */}
+        <hr style={{ borderColor: '#334155', width: '100%', marginBottom: '20px' }} />
         
         <ul style={{ listStyle: 'none', padding: 0, flex: 1 }}>
-          <li style={{ marginBottom: '10px' }}><NavLink to="/proyectos" style={{color: '#bdc3c7', textDecoration: 'none'}}>Proyectos</NavLink></li>
-          <li style={{ marginBottom: '10px' }}><NavLink to="/recursos" style={{color: '#bdc3c7', textDecoration: 'none'}}>Recursos (RRHH)</NavLink></li>
-          <li style={{ marginBottom: '10px' }}><NavLink to="/monitoreo" style={{color: '#bdc3c7', textDecoration: 'none'}}>Monitoreo y Analítica</NavLink></li>
+          <li style={{ marginBottom: '10px' }}>
+            <NavLink to="/proyectos" style={{color: '#CBD5E1', textDecoration: 'none'}}>Proyectos</NavLink>
+          </li>
+          <li style={{ marginBottom: '10px' }}>
+            <NavLink to="/recursos" style={{color: '#CBD5E1', textDecoration: 'none'}}>Recursos (RRHH)</NavLink>
+          </li>
+          <li style={{ marginBottom: '10px' }}>
+            <NavLink to="/monitoreo" style={{color: '#CBD5E1', textDecoration: 'none'}}>Monitoreo y Analítica</NavLink>
+          </li>
         </ul>
 
-        <button onClick={handleLogout} style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '10px', cursor: 'pointer', borderRadius: '4px' }}>
+        {/* Botón de Cerrar Sesión con estilo corporativo */}
+        <button onClick={handleLogout} style={{ background: 'transparent', color: '#EF4444', border: '1px solid #EF4444', padding: '10px', cursor: 'pointer', borderRadius: '4px', fontWeight: '500' }}>
           Cerrar Sesión
         </button>
       </nav>
       
-      <main style={{ flex: 1, padding: '30px', background: '#ecf0f1', overflowY: 'auto' }}>
-        <Outlet /> {/* Aquí se renderizan las vistas hijas */}
+      {/* Contenedor principal con el fondo gris claro del login y sin márgenes */}
+      <main style={{ flex: 1, padding: '30px', background: '#F8FAFC', overflowY: 'auto' }}>
+        <Outlet />
       </main>
+      
     </div>
   );
 };
