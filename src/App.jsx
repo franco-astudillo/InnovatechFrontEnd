@@ -1,17 +1,24 @@
-// src/App.jsx
-    import React from 'react';
-    import { useInnovatechViewModel } from './viewmodels/useInnovatechViewModel';
-    
-    function App() {
-        const { mensaje } = useInnovatechViewModel();
-    
-        return (
-            <div style={{ textAlign: 'center', marginTop: '50px', fontFamily: 'sans-serif' }}>
-                <h1>Portal Innovatech</h1>
-                <p>Estado del servidor backend:</p>
-                <h2 style={{ color: '#0056b3' }}>{mensaje}</h2>
-            </div>
-        );
-    }
-    
-    export default App;
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import LoginView from './view/pages/LoginView';
+import MainLayout from './view/layouts/MainLayout';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Ruta pública */}
+        <Route path="/" element={<LoginView />} />
+        
+        {/* Rutas privadas (Dentro del Layout con Sidebar) */}
+        <Route element={<MainLayout />}>
+          <Route path="/recursos" element={<div>Módulo de Recursos en construcción...</div>} />
+          <Route path="/proyectos" element={<div>Módulo de Proyectos en construcción...</div>} />
+          <Route path="/monitoreo" element={<div>Módulo de Monitoreo en construcción...</div>} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
