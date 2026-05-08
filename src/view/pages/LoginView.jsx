@@ -26,7 +26,7 @@ const LoginView = () => {
             value={email} 
             onChange={(e) => setEmail(e.target.value)} 
             style={styles.input}
-            autocomplete = "off"
+            autoComplete = "off"
             required
           />
         </div>

@@ -1,38 +1,51 @@
-import React, { useEffect, useState } from 'react';
-import { RecursosService } from '../../service/RecursosService';
+import React, { useState } from 'react';
+import { useRecursosViewModel } from '../../viewmodels/useRecursosViewModel';
 
 const RecursosView = () => {
-  const [usuarios, setUsuarios] = useState([]);
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const data = await RecursosService.getUsuarios();
-        setUsuarios(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setCargando(false);
-      }
-    };
-    cargarDatos();
-  }, []);
+  const { usuarios, categorias, cargos, loading, agregarCategoria, agregarCargo } = useRecursosViewModel();
+  const [newCat, setNewCat] = useState('');
+  const [newCar, setNewCar] = useState('');
 
   return (
-    <div>
-      <h2>Gestión de Recursos Humanos</h2>
-      <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-        <div style={cardStyle}>
-          <h4>Total Personal en la Empresa</h4>
-          <p style={numeroStyle}>{cargando ? "..." : usuarios.length}</p>
-        </div>
+    <div style={{ padding: '20px' }}>
+      <h2>Dashboard de Recursos</h2>
+
+      {/* Cards Informativas */}
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
+        <StatCard title="Total Personal" count={usuarios.length} loading={loading} color="#2ecc71" />
+        <StatCard title="Categorías" count={categorias.length} loading={loading} color="#3498db" />
+        <StatCard title="Cargos" count={cargos.length} loading={loading} color="#9b59b6" />
+      </div>
+
+      {/* Formularios de Creación */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <section style={sectionStyle}>
+          <h3>Gestionar Categorías</h3>
+          <input value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="Nombre categoría" />
+          <button onClick={() => { agregarCategoria(newCat); setNewCat(''); }}>Crear</button>
+          <ul>{categorias.map(c => <li key={c.id}>{c.categoria}</li>)}</ul>
+        </section>
+
+        <section style={sectionStyle}>
+          <h3>Gestionar Cargos</h3>
+          <input value={newCar} onChange={(e) => setNewCar(e.target.value)} placeholder="Nombre cargo" />
+          <button onClick={() => { agregarCargo(newCar); setNewCar(''); }}>Crear</button>
+          <ul>{cargos.map(c => <li key={c.id}>{c.nombreCargo}</li>)}</ul>
+        </section>
       </div>
     </div>
   );
 };
 
-const cardStyle = { padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' };
-const numeroStyle = { fontSize: '32px', fontWeight: 'bold' };
+// Componentes pequeños para mantener el orden
+const StatCard = ({ title, count, loading, color }) => (
+  <div style={{ ...cardStyle, borderLeft: `5px solid ${color}` }}>
+    <h4>{title}</h4>
+    <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{loading ? '...' : count}</p>
+  </div>
+);
+
+const cardStyle = { padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', flex: 1 };
+const sectionStyle = { background: 'white', padding: '20px', borderRadius: '8px' };
 
 export default RecursosView;
