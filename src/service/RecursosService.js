@@ -1,14 +1,14 @@
 import api from './ApiService';
 
 export const RecursosService = {
-  // Obtiene la lista de usuarios (empleados) pasando por el Gateway
+  // Obtener lista de trabajadores
   getUsuarios: async () => {
-    try {
-      const response = await api.get('api/v1/usuarios');
-      return response.data;
-    } catch (error) {
-      console.error("Error al obtener recursos: ", error);
-      throw error;
-    }
+    const response = await api.get('/api/v1/usuarios');
+    return response.data;
+  },
+  // Crear un nuevo trabajador
+  createUsuario: async (usuarioData) => {
+    const response = await api.post('/api/v1/usuarios', usuarioData);
+    return response.data;
   }
 };

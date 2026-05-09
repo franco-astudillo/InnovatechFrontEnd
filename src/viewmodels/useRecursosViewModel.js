@@ -3,6 +3,11 @@ import { RecursosService } from '../service/RecursosService';
 import { CategoriaService } from '../service/CategoriaService';
 import { CargoService } from '../service/CargoService';
 
+// Nuevas importaciones para manejar la app secundaria de Firebase
+import { initializeApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth } from "../firebase/config";
+
 export const useRecursosViewModel = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -29,7 +34,6 @@ export const useRecursosViewModel = () => {
 
   const agregarCategoria = async (nombreInput) => {
     try {
-      // Usamos nombre_categoria como está en tu modelo
       await CategoriaService.create({ categoria: nombreInput });
       fetchData(); 
     } catch (error) {
@@ -39,7 +43,6 @@ export const useRecursosViewModel = () => {
 
   const agregarCargo = async (nombreInput) => {
     try {
-      // Usamos nombre_cargo como está en tu modelo Java
       await CargoService.create({ nombreCargo: nombreInput });
       fetchData();
     } catch (error) {
@@ -50,7 +53,7 @@ export const useRecursosViewModel = () => {
   const eliminarCategoria = async (id) => {
     try {
       await CategoriaService.delete(id);
-      fetchData(); // Recargamos la lista para que desaparezca el eliminado
+      fetchData(); 
     } catch (error) {
       console.error("Error al eliminar categoría:", error);
     }
@@ -59,13 +62,53 @@ export const useRecursosViewModel = () => {
   const eliminarCargo = async (id) => {
     try {
       await CargoService.delete(id);
-      fetchData(); // Recargamos la lista para que desaparezca el cargo eliminado
+      fetchData(); 
     } catch (error) {
       console.error("Error al eliminar cargo:", error);
     }
   };
 
+  const agregarTrabajador = async (datosFormulario) => {
+    try {
+      // 1. Crear una "App Secundaria" usando la misma configuración de tu auth original.
+      // Esto evita que Firebase te cierre la sesión a ti como administrador.
+      const secondaryApp = initializeApp(auth.app.options, "SecondaryApp" + Date.now());
+      const secondaryAuth = getAuth(secondaryApp);
+
+      // 2. Crear usuario en Firebase Authentication usando la app secundaria
+      const userCredential = await createUserWithEmailAndPassword(
+        secondaryAuth, 
+        datosFormulario.email, 
+        datosFormulario.password
+      );
+      
+      const uid = userCredential.user.uid;
+
+      // 3. Cerrar la sesión de la app secundaria para dejarla limpia
+      await signOut(secondaryAuth);
+
+      // 4. Preparar el objeto DTO para tu Backend
+      const nuevoUsuario = {
+        nombre: datosFormulario.nombre,
+        email: datosFormulario.email,
+        sueldo: datosFormulario.sueldo ? parseInt(datosFormulario.sueldo) : 0,
+        uidFirebase: uid, 
+        categoriaId: parseInt(datosFormulario.categoriaId), 
+        cargoId: parseInt(datosFormulario.cargoId)          
+      };
+
+      // 5. Guardar en tu Microservicio
+      await RecursosService.createUsuario(nuevoUsuario);
+      
+      await fetchData(); // Refrescar lista
+      return { success: true };
+    } catch (error) {
+      console.error("Error en registro dual:", error);
+      return { success: false, message: error.message };
+    }
+  };
+
   useEffect(() => { fetchData(); }, []);
 
-  return { usuarios, categorias, cargos, loading, agregarCategoria, agregarCargo, eliminarCategoria, eliminarCargo };
+  return { usuarios, categorias, cargos, loading, agregarCategoria, agregarCargo, eliminarCategoria, eliminarCargo, agregarTrabajador };
 };
