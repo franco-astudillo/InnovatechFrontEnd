@@ -1,8 +1,9 @@
 import axios from 'axios';
+import Cookies from 'js-cookie'
 
 const api = axios.create({
   // URL de tu API Gateway (ajusta el puerto según tu configuración de Spring Boot)
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -10,7 +11,7 @@ const api = axios.create({
 
 // Interceptor para inyectar el JWT en cada petición
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('jwt_token');
+  const token = Cookies.get('token'); // Recuperamos el token desde la cookie
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
