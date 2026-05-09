@@ -12,7 +12,12 @@ export const AuthService = {
       // expires: 1 significa que la cookie expira en 1 día
       // secure: true asegura que solo se envíe por HTTPS
       // sameSite: 'strict' evita ataques CSRF
-      Cookies.set('token', token, { expires: 1, secure: true, sameSite: 'strict' });
+      Cookies.set('token', token, { 
+      expires: 1, 
+      secure: true,      // Mantenlo para producción en Vercel (usa HTTPS)
+      sameSite: 'Lax',   // Cambia 'strict' por 'Lax' para mejor compatibilidad en despliegues
+      path: '/'          // Asegura que la cookie sea accesible en todas las rutas de tu página
+    });
       
       return userCredential.user;
     } catch (error) {
