@@ -1,12 +1,14 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+// 1. Cambiamos BrowserRouter por HashRouter
+import { HashRouter, Routes, Route } from 'react-router-dom'; 
 import LoginView from './view/pages/LoginView';
 import MainLayout from './view/layouts/MainLayout';
 import RecursosView from './view/pages/RecursosView';
 
 function App() {
   return (
-    <BrowserRouter>
+    // 2. Envolvemos la app con HashRouter
+    <HashRouter> 
       <Routes>
         {/* Ruta pública */}
         <Route path="/" element={<LoginView />} />
@@ -18,7 +20,7 @@ function App() {
           <Route path="/monitoreo" element={<div>Módulo de Monitoreo en construcción...</div>} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
