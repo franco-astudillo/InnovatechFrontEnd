@@ -8,5 +8,10 @@ export const CategoriaService = {
   create: async (categoria) => {
     const response = await api.post('/api/v1/categorias', categoria);
     return response.data;
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/api/v1/categorias/${id}`);
+    return response.data;
   }
 };

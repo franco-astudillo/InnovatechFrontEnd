@@ -47,7 +47,25 @@ export const useRecursosViewModel = () => {
     }
   };
 
+  const eliminarCategoria = async (id) => {
+    try {
+      await CategoriaService.delete(id);
+      fetchData(); // Recargamos la lista para que desaparezca el eliminado
+    } catch (error) {
+      console.error("Error al eliminar categoría:", error);
+    }
+  };
+
+  const eliminarCargo = async (id) => {
+    try {
+      await CargoService.delete(id);
+      fetchData(); // Recargamos la lista para que desaparezca el cargo eliminado
+    } catch (error) {
+      console.error("Error al eliminar cargo:", error);
+    }
+  };
+
   useEffect(() => { fetchData(); }, []);
 
-  return { usuarios, categorias, cargos, loading, agregarCategoria, agregarCargo };
+  return { usuarios, categorias, cargos, loading, agregarCategoria, agregarCargo, eliminarCategoria, eliminarCargo };
 };
