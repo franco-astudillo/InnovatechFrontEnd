@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useRecursosViewModel } from '../../viewmodels/useRecursosViewModel';
 
 const RecursosView = () => {
-  const { usuarios, categorias, cargos, loading, agregarCategoria, agregarCargo } = useRecursosViewModel();
+  const { usuarios, categorias, cargos, loading, agregarCategoria, agregarCargo, eliminarCategoria, eliminarCargo } = useRecursosViewModel();
   const [newCat, setNewCat] = useState('');
   const [newCar, setNewCar] = useState('');
 
@@ -23,14 +23,38 @@ const RecursosView = () => {
           <h3>Gestionar Categorías</h3>
           <input value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="Nombre categoría" />
           <button onClick={() => { agregarCategoria(newCat); setNewCat(''); }}>Crear</button>
-          <ul>{categorias.map(c => <li key={c.id}>{c.categoria}</li>)}</ul>
+          <ul style={{ paddingLeft: '0', listStyle: 'none' }}>
+            {categorias.map(c => (
+              <li key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', padding: '5px', borderBottom: '1px solid #eee' }}>
+                <span>{c.categoria}</span>
+                <button 
+                  onClick={() => eliminarCategoria(c.id)} 
+                  style={{ background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                >
+                  Eliminar
+                </button>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section style={sectionStyle}>
           <h3>Gestionar Cargos</h3>
           <input value={newCar} onChange={(e) => setNewCar(e.target.value)} placeholder="Nombre cargo" />
           <button onClick={() => { agregarCargo(newCar); setNewCar(''); }}>Crear</button>
-          <ul>{cargos.map(c => <li key={c.id}>{c.nombreCargo}</li>)}</ul>
+          <ul style={{ paddingLeft: '0', listStyle: 'none' }}>
+            {cargos.map(c => (
+              <li key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', padding: '5px', borderBottom: '1px solid #eee' }}>
+                <span>{c.nombreCargo}</span>
+                <button 
+                  onClick={() => eliminarCargo(c.id)} 
+                  style={{ background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                >
+                  Eliminar
+                </button>
+              </li>
+            ))}
+          </ul>
         </section>
       </div>
     </div>
