@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   // URL de tu API Gateway (ajusta el puerto según tu configuración de Spring Boot)
-  baseURL: ' https://gateinnovatech.onrender.com', 
+  baseURL: 'https://gateinnovatech.onrender.com', 
   headers: {
     'Content-Type': 'application/json',
   },
