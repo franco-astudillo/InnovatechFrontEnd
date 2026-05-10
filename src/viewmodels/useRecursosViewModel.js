@@ -9,11 +9,16 @@ import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth"
 import { auth } from "../firebase/config";
 
 export const useRecursosViewModel = () => {
+  // ESTADOS LOCALES (Variables reactivas):
+  // Arreglos vacíos iniciales para guardar la información que llegue de la base de datos (PostgreSQL).
   const [usuarios, setUsuarios] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cargos, setCargos] = useState([]);
+  // Estado para controlar la pantalla de carga. Inicia en 'true' porque al entrar a la página
+  // inmediatamente empezaremos a descargar los datos.
   const [loading, setLoading] = useState(true);
 
+  // FUNCIÓN DE LECTURA (READ):
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -22,6 +27,10 @@ export const useRecursosViewModel = () => {
         CategoriaService.getAll(),
         CargoService.getAll()
       ]);
+
+      // Guardamos los datos que llegaron del servidor en nuestros estados locales.
+      // El "|| []" es un salvavidas: si la API falla y devuelve undefined, guardamos un arreglo vacío
+      // para evitar que la página crashee al intentar hacer un .map() más adelante.
       setUsuarios(uData || []);
       setCategorias(catData || []);
       setCargos(carData || []);

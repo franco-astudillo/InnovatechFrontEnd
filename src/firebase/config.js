@@ -1,6 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
+// Creamos un objeto con todas las "llaves" y direcciones de nuestro proyecto en Firebase.
+// Usamos 'import.meta.env' porque estamos usando Vite. Esto es por SEGURIDAD:
+// Nos permite leer estas claves desde un archivo oculto (.env) en lugar de escribirlas
+// directamente aquí, evitando que cualquier persona en internet pueda robarnos las credenciales.
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,

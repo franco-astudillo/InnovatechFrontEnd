@@ -1,4 +1,7 @@
+// Importamos 'useState' de React, un Hook que nos permite crear variables reactivas. 
+// Cuando estas variables cambian, React actualiza automáticamente la pantalla.
 import { useState } from "react";
+// Importamos 'useNavigate' de React Router para poder cambiar de página mediante código (redirección automática).
 import { useNavigate } from "react-router-dom";
 import { AuthService } from "../service/AuthService";
 

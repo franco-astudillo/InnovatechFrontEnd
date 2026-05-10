@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { useRecursosViewModel } from '../../viewmodels/useRecursosViewModel';
 
 const RecursosView = () => {
+  // Desestructuramos (sacamos) todas las variables y funciones que nos provee el ViewModel.
+  // Aquí traemos las listas de datos (usuarios, categorias, cargos) y las acciones (agregar, eliminar).
   const { 
     usuarios, categorias, cargos, loading, 
     agregarCategoria, agregarCargo, eliminarCategoria, eliminarCargo,
     agregarTrabajador 
   } = useRecursosViewModel();
 
+  // ESTADOS LOCALES: 
+  // Usamos useState para capturar lo que el usuario escribe en los inputs antes de enviarlo al backend.
+  const [newCat, setNewCat] = useState('');
   const [newCat, setNewCat] = useState('');
   const [newCar, setNewCar] = useState('');
   
@@ -20,10 +25,15 @@ const RecursosView = () => {
     categoriaId: ''  
   });
 
+
+  // En lugar de hacer un 'onChange' distinto para cada input, esta función lee el atributo 'name' del input
+  // y actualiza exactamente esa propiedad en el objeto formData. 
+  // Ej: Si el input tiene name="sueldo", actualiza formData.sueldo.
   const handleInput = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // MANEJADOR DEL FORMULARIO DE TRABAJADOR:
   const onSubmitTrabajador = async (e) => {
     e.preventDefault();
     const res = await agregarTrabajador(formData);
@@ -51,6 +61,7 @@ const RecursosView = () => {
     }
   };
 
+  // RENDERIZADO DEL COMPONENTE (JSX)
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'sans-serif' }}>
       <h2>Dashboard de Recursos</h2>
