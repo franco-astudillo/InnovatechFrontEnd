@@ -13,7 +13,6 @@ const RecursosView = () => {
   // ESTADOS LOCALES: 
   // Usamos useState para capturar lo que el usuario escribe en los inputs antes de enviarlo al backend.
   const [newCat, setNewCat] = useState('');
-  const [newCat, setNewCat] = useState('');
   const [newCar, setNewCar] = useState('');
   
   const [formData, setFormData] = useState({
