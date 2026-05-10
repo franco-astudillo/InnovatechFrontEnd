@@ -50,17 +50,18 @@
   }
 }
 
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  width: 100%; /* Permite que ocupe toda la pantalla de lado a lado */
+  height: 100vh; /* Permite que ocupe toda la altura */
+  margin: 0; /* Quita el centrado automático que dejaba los espacios blancos */
+  text-align: left; /* Alinea el texto a la izquierda por defecto */
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
