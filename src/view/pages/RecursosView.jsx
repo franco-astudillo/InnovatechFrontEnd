@@ -28,10 +28,26 @@ const RecursosView = () => {
     e.preventDefault();
     const res = await agregarTrabajador(formData);
     if (res.success) {
-      // Se limpia el formulario y ya no hay "alert" que detenga el proceso
       setFormData({ nombre: '', email: '', password: '', sueldo: '', cargoId: '', categoriaId: '' });
     } else {
       alert("Error al registrar: " + res.message);
+    }
+  };
+
+  // Validaciones para evitar envíos vacíos o con puros espacios
+  const onSubmitCategoria = (e) => {
+    e.preventDefault();
+    if (newCat.trim() !== '') {
+      agregarCategoria(newCat);
+      setNewCat('');
+    }
+  };
+
+  const onSubmitCargo = (e) => {
+    e.preventDefault();
+    if (newCar.trim() !== '') {
+      agregarCargo(newCar);
+      setNewCar('');
     }
   };
 
@@ -60,15 +76,17 @@ const RecursosView = () => {
         {/* Gestión de Categorías */}
         <div style={sectionStyle}>
           <h3>Gestionar Categorías</h3>
-          <div style={inputGroupStyle}>
+          {/* Se cambió div por form para activar el "required" del HTML */}
+          <form onSubmit={onSubmitCategoria} style={inputGroupStyle}>
             <input 
               style={inputStyle}
               value={newCat} 
               onChange={(e) => setNewCat(e.target.value)} 
               placeholder="Nombre categoría" 
+              required 
             />
-            <button style={btnStyle} onClick={() => { agregarCategoria(newCat); setNewCat(''); }}>Crear</button>
-          </div>
+            <button type="submit" style={btnStyle}>Crear</button>
+          </form>
           <ul style={listStyle}>
             {categorias.map(c => (
               <li key={c.id} style={listItemStyle}>
@@ -82,15 +100,16 @@ const RecursosView = () => {
         {/* Gestión de Cargos */}
         <div style={sectionStyle}>
           <h3>Gestionar Cargos</h3>
-          <div style={inputGroupStyle}>
+          <form onSubmit={onSubmitCargo} style={inputGroupStyle}>
             <input 
               style={inputStyle}
               value={newCar} 
               onChange={(e) => setNewCar(e.target.value)} 
               placeholder="Nombre cargo" 
+              required 
             />
-            <button style={btnStyle} onClick={() => { agregarCargo(newCar); setNewCar(''); }}>Crear</button>
-          </div>
+            <button type="submit" style={btnStyle}>Crear</button>
+          </form>
           <ul style={listStyle}>
             {cargos.map(c => (
               <li key={c.id} style={listItemStyle}>
@@ -108,7 +127,7 @@ const RecursosView = () => {
             <input name="nombre" placeholder="Nombre completo" value={formData.nombre} onChange={handleInput} required style={inputStyle} autoComplete="off"/>
             <input name="email" type="email" placeholder="Correo corporativo" value={formData.email} onChange={handleInput} required style={inputStyle} autoComplete="new-password"/>
             <input name="password" type="password" placeholder="Contraseña de acceso (Firebase)" value={formData.password} onChange={handleInput} required style={inputStyle} autoComplete="new-password"/>
-            <input name="sueldo" type="number" placeholder="Sueldo" value={formData.sueldo} onChange={handleInput} style={inputStyle} autoComplete="off"/>
+            <input name="sueldo" type="number" placeholder="Sueldo" value={formData.sueldo} onChange={handleInput} required style={inputStyle} autoComplete="off"/>
             
             <select name="cargoId" value={formData.cargoId} onChange={handleInput} required style={inputStyle}>
               <option value="">Seleccione Cargo</option>
@@ -157,7 +176,7 @@ const RecursosView = () => {
   );
 };
 
-// Estilos Básicos (Apariencia Default HTML sin estética avanzada)
+// Estilos Básicos (Apariencia Default HTML)
 const cardStyle = { padding: '15px', border: '1px solid black', flex: 1, backgroundColor: '#f0f0f0' };
 const sectionStyle = { padding: '15px', border: '1px solid black', backgroundColor: '#f9f9f9' };
 const inputStyle = { padding: '5px', border: '1px solid #777' };
