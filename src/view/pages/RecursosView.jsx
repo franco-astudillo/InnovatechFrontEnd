@@ -1,202 +1,445 @@
 import React, { useState } from 'react';
 import { useRecursosViewModel } from '../../viewmodels/useRecursosViewModel';
+import { validarNombre, validarEmail, validarPassword, validarSueldo, validarTextoCorto } from '../../components/validaciones';
 
 const RecursosView = () => {
-  // Desestructuramos (sacamos) todas las variables y funciones que nos provee el ViewModel.
-  // Aquí traemos las listas de datos (usuarios, categorias, cargos) y las acciones (agregar, eliminar).
   const { 
     usuarios, categorias, cargos, loading, 
     agregarCategoria, agregarCargo, eliminarCategoria, eliminarCargo,
-    agregarTrabajador 
+    agregarTrabajador,editarTrabajador, eliminarTrabajador,
+    usuarioEncontrado,buscarLoading,buscarError, buscarUsuarioPorId,limpiarBusqueda
   } = useRecursosViewModel();
 
-  // ESTADOS LOCALES: 
-  // Usamos useState para capturar lo que el usuario escribe en los inputs antes de enviarlo al backend.
+  const [isOpenCategorias, setIsOpenCategorias] = useState(true);
+  const [isOpenCargos, setIsOpenCargos] = useState(true);
+  const [isOpenBuscar, setIsOpenBuscar] = useState(true);
+  const [isOpenFormTrabajador, setIsOpenFormTrabajador] = useState(true);
+  const [isOpenListado, setIsOpenListado] = useState(true);
+
   const [newCat, setNewCat] = useState('');
   const [newCar, setNewCar] = useState('');
+
+  const [buscarId, setBuscarId] = useState('');
   
+  const [modoEdicion, setModoEdicion] = useState(null);
   const [formData, setFormData] = useState({
-    nombre: '',
-    email: '',
-    password: '', 
-    sueldo: '',   
-    cargoId: '',     
-    categoriaId: ''  
+    nombre: '', email: '', password: '', sueldo: '', cargoId: '', categoriaId: ''
   });
 
+  // --- NUEVOS ESTADOS PARA MANEJAR ERRORES EN PANTALLA ---
+  const [erroresForm, setErroresForm] = useState({});
+  const [errorCat, setErrorCat] = useState(null);
+  const [errorCar, setErrorCar] = useState(null);
 
-  // En lugar de hacer un 'onChange' distinto para cada input, esta función lee el atributo 'name' del input
-  // y actualiza exactamente esa propiedad en el objeto formData. 
-  // Ej: Si el input tiene name="sueldo", actualiza formData.sueldo.
   const handleInput = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    // Limpiamos el error de este input en cuanto el usuario empieza a escribir
+    setErroresForm({ ...erroresForm, [name]: null });
   };
 
-  // MANEJADOR DEL FORMULARIO DE TRABAJADOR:
+  const iniciarCrear = () => {
+    setModoEdicion(null);
+    setFormData({ nombre: '', email: '', password: '', sueldo: '', cargoId: '', categoriaId: '' });
+    setErroresForm({});
+    setIsOpenFormTrabajador(true);
+  };
+
+  const iniciarEdicion = (usuario) => {
+    setModoEdicion(usuario.id);
+    setFormData({
+      nombre: usuario.nombre || '',
+      email: usuario.email || '',
+      password: '',
+      sueldo: usuario.sueldo || '',
+      cargoId: usuario.cargo?.id || '',
+      categoriaId: usuario.categoria?.id || ''
+    });
+    setErroresForm({});
+    setIsOpenFormTrabajador(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelarEdicion = () => {
+    setModoEdicion(null);
+    setFormData({ nombre: '', email: '', password: '', sueldo: '', cargoId: '', categoriaId: '' });
+    setErroresForm({});
+  };
+
   const onSubmitTrabajador = async (e) => {
     e.preventDefault();
-    const res = await agregarTrabajador(formData);
-    if (res.success) {
-      setFormData({ nombre: '', email: '', password: '', sueldo: '', cargoId: '', categoriaId: '' });
+
+    // --- EJECUTAR VALIDACIONES ---
+    const errNombre = validarNombre(formData.nombre);
+    const errSueldo = validarSueldo(formData.sueldo);
+    let errEmail = null;
+    let errPass = null;
+
+    if (modoEdicion === null) {
+      errEmail = validarEmail(formData.email);
+      errPass = validarPassword(formData.password);
+    }
+
+    const errCargo = !formData.cargoId ? "Debe seleccionar un Cargo obligatorio." : null;
+    const errCategoria = !formData.categoriaId ? "Debe seleccionar una Categoría obligatoria." : null;
+
+    // Guardamos los errores en el estado
+    const nuevosErrores = {
+      nombre: errNombre,
+      email: errEmail,
+      password: errPass,
+      sueldo: errSueldo,
+      cargoId: errCargo,
+      categoriaId: errCategoria
+    };
+
+    setErroresForm(nuevosErrores);
+
+    // Si algún campo tiene un texto de error (no es null), detenemos el envío
+    if (Object.values(nuevosErrores).some(error => error !== null)) {
+      return; 
+    }
+    // -----------------------------
+
+    if (modoEdicion !== null) {
+      const res = await editarTrabajador(modoEdicion, formData);
+      if (res.success) {
+        alert(`Colaborador (ID: ${modoEdicion}) actualizado exitosamente.`);
+        cancelarEdicion();
+      } else {
+        alert("Error al actualizar: " + res.message); // Mantenemos alert solo para errores graves del backend
+      }
     } else {
-      alert("Error al registrar: " + res.message);
+      const res = await agregarTrabajador(formData);
+      if (res.success) {
+        alert("Trabajador registrado exitosamente en Firebase y base de datos.");
+        setFormData({ nombre: '', email: '', password: '', sueldo: '', cargoId: '', categoriaId: '' });
+      } else {
+        alert("Error al registrar: " + res.message);
+      }
     }
   };
 
-  // Validaciones para evitar envíos vacíos o con puros espacios
+  const onEliminarTrabajador = async (id, nombre) => {
+    const confirmar = window.confirm(`¿Está seguro de que desea eliminar al trabajador "${nombre}" (ID: ${id})? Esta acción no se puede deshacer.`);
+    if (!confirmar) return;
+    const res = await eliminarTrabajador(id);
+    if (!res.success) {
+      alert("Error al eliminar: " + res.message);
+    }
+  };
+
   const onSubmitCategoria = (e) => {
     e.preventDefault();
-    if (newCat.trim() !== '') {
-      agregarCategoria(newCat);
-      setNewCat('');
+    const error = validarTextoCorto(newCat, "Categoría");
+    if (error) {
+      setErrorCat(error);
+      return;
     }
+    setErrorCat(null);
+    agregarCategoria(newCat);
+    setNewCat('');
   };
 
   const onSubmitCargo = (e) => {
     e.preventDefault();
-    if (newCar.trim() !== '') {
-      agregarCargo(newCar);
-      setNewCar('');
+    const error = validarTextoCorto(newCar, "Cargo");
+    if (error) {
+      setErrorCar(error);
+      return;
     }
+    setErrorCar(null);
+    agregarCargo(newCar);
+    setNewCar('');
   };
 
-  // RENDERIZADO DEL COMPONENTE (JSX)
-  return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      <h2>Dashboard de Recursos</h2>
+  const onSubmitBuscar = (e) => {
+    e.preventDefault();
+    buscarUsuarioPorId(buscarId.trim());
+  };
 
-      {/* Cards Informativas - Diseño Default */}
-      <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+  const handleLimpiarBusqueda = () => {
+    limpiarBusqueda();
+    setBuscarId('');
+  };
+
+  return (
+    <div style={{ padding: '10px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+      <h2>Dashboard de Recursos Humanos</h2>
+
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', flexWrap: 'wrap' }}>
         <div style={cardStyle}>
-          <h4 style={{ margin: '0 0 10px 0' }}>Total Personal</h4>
-          <p style={{ fontSize: '18px', margin: '0' }}>{loading ? '...' : usuarios.length}</p>
+          <h4 style={{ margin: '0 0 8px 0' }}>Total Personal</h4>
+          <p style={{ fontSize: '22px', fontWeight: 'bold', margin: '0' }}>{loading ? '...' : usuarios.length}</p>
         </div>
         <div style={cardStyle}>
-          <h4 style={{ margin: '0 0 10px 0' }}>Categorías</h4>
-          <p style={{ fontSize: '18px', margin: '0' }}>{loading ? '...' : categorias.length}</p>
+          <h4 style={{ margin: '0 0 8px 0' }}>Categorías</h4>
+          <p style={{ fontSize: '22px', fontWeight: 'bold', margin: '0' }}>{loading ? '...' : categorias.length}</p>
         </div>
         <div style={cardStyle}>
-          <h4 style={{ margin: '0 0 10px 0' }}>Cargos</h4>
-          <p style={{ fontSize: '18px', margin: '0' }}>{loading ? '...' : cargos.length}</p>
+          <h4 style={{ margin: '0 0 8px 0' }}>Cargos</h4>
+          <p style={{ fontSize: '22px', fontWeight: 'bold', margin: '0' }}>{loading ? '...' : cargos.length}</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '20px' }}>
         
-        {/* Gestión de Categorías */}
-        <div style={sectionStyle}>
-          <h3>Gestionar Categorías</h3>
-          {/* Se cambió div por form para activar el "required" del HTML */}
+        {/* CATEGORÍAS */}
+        <CollapsibleCard title="Gestionar Categorías (Roles)" isOpen={isOpenCategorias} setIsOpen={setIsOpenCategorias}>
           <form onSubmit={onSubmitCategoria} style={inputGroupStyle}>
-            <input 
-              style={inputStyle}
-              value={newCat} 
-              onChange={(e) => setNewCat(e.target.value)} 
-              placeholder="Nombre categoría" 
-              required 
-            />
-            <button type="submit" style={btnStyle}>Crear</button>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <input 
+                style={errorCat ? inputErrorStyle : inputStyle} 
+                value={newCat} 
+                onChange={(e) => { setNewCat(e.target.value); setErrorCat(null); }} 
+                placeholder="Nombre de la categoría" required maxLength="50"
+              />
+              {errorCat && <span style={errorTextStyle}>{errorCat}</span>}
+            </div>
+            <button type="submit" style={{...btnStyle, height: 'fit-content'}}>Crear</button>
           </form>
           <ul style={listStyle}>
-            {categorias.map(c => (
+            {categorias.length === 0 ? (
+              <li style={{ fontStyle: 'italic', color: '#666', padding: '5px 0' }}>No hay categorías registradas.</li>
+            ) : categorias.map(c => (
               <li key={c.id} style={listItemStyle}>
-                <span>{c.categoria}</span>
-                <button style={btnStyle} onClick={() => eliminarCategoria(c.id)}>Eliminar</button>
+                <span><strong>#{c.id}</strong> — {c.categoria}</span>
+                <button style={btnDangerStyle} onClick={() => eliminarCategoria(c.id)}>Eliminar</button>
               </li>
             ))}
           </ul>
-        </div>
+        </CollapsibleCard>
 
-        {/* Gestión de Cargos */}
-        <div style={sectionStyle}>
-          <h3>Gestionar Cargos</h3>
+        {/* CARGOS */}
+        <CollapsibleCard title="Gestionar Cargos" isOpen={isOpenCargos} setIsOpen={setIsOpenCargos}>
           <form onSubmit={onSubmitCargo} style={inputGroupStyle}>
-            <input 
-              style={inputStyle}
-              value={newCar} 
-              onChange={(e) => setNewCar(e.target.value)} 
-              placeholder="Nombre cargo" 
-              required 
-            />
-            <button type="submit" style={btnStyle}>Crear</button>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <input 
+                style={errorCar ? inputErrorStyle : inputStyle} 
+                value={newCar} 
+                onChange={(e) => { setNewCar(e.target.value); setErrorCar(null); }} 
+                placeholder="Nombre del cargo" required maxLength="50" 
+              />
+              {errorCar && <span style={errorTextStyle}>{errorCar}</span>}
+            </div>
+            <button type="submit" style={{...btnStyle, height: 'fit-content'}}>Crear</button>
           </form>
           <ul style={listStyle}>
-            {cargos.map(c => (
+            {cargos.length === 0 ? (
+              <li style={{ fontStyle: 'italic', color: '#666', padding: '5px 0' }}>No hay cargos registrados.</li>
+            ) : cargos.map(c => (
               <li key={c.id} style={listItemStyle}>
-                <span>{c.nombreCargo}</span>
-                <button style={btnStyle} onClick={() => eliminarCargo(c.id)}>Eliminar</button>
+                <span><strong>#{c.id}</strong> — {c.nombreCargo}</span>
+                <button style={btnDangerStyle} onClick={() => eliminarCargo(c.id)}>Eliminar</button>
               </li>
             ))}
           </ul>
-        </div>
+        </CollapsibleCard>
+      </div>
 
-        {/* Formulario Nuevo Trabajador */}
-        <div style={{ ...sectionStyle, gridColumn: '1 / -1' }}>
-          <h3>Registrar Nuevo Trabajador</h3>
-          <form onSubmit={onSubmitTrabajador} style={formGridStyle} autoComplete="off">
-            <input name="nombre" placeholder="Nombre completo" value={formData.nombre} onChange={handleInput} required style={inputStyle} autoComplete="off"/>
-            <input name="email" type="email" placeholder="Correo corporativo" value={formData.email} onChange={handleInput} required style={inputStyle} autoComplete="new-password"/>
-            <input name="password" type="password" placeholder="Contraseña de acceso (Firebase)" value={formData.password} onChange={handleInput} required style={inputStyle} autoComplete="new-password"/>
-            <input name="sueldo" type="number" placeholder="Sueldo" value={formData.sueldo} onChange={handleInput} required style={inputStyle} autoComplete="off"/>
-            
-            <select name="cargoId" value={formData.cargoId} onChange={handleInput} required style={inputStyle}>
-              <option value="">Seleccione Cargo</option>
-              {cargos.map(c => <option key={c.id} value={c.id}>{c.nombreCargo}</option>)}
-            </select>
-
-            <select name="categoriaId" value={formData.categoriaId} onChange={handleInput} required style={inputStyle}>
-              <option value="">Seleccione Categoría</option>
-              {categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.categoria}</option>)}
-            </select>
-
-            <button type="submit" style={btnStyle} disabled={loading}>
-              {loading ? 'Procesando...' : 'Crear Cuenta y Ficha'}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        
+        {/* BÚSQUEDA */}
+        <CollapsibleCard title="Buscar Trabajador por ID" isOpen={isOpenBuscar} setIsOpen={setIsOpenBuscar}>
+          <form onSubmit={onSubmitBuscar} style={{ ...inputGroupStyle, maxWidth: '420px', alignItems: 'flex-start' }}>
+            <input 
+              style={inputStyle} type="number" value={buscarId} 
+              onChange={(e) => setBuscarId(e.target.value)} 
+              placeholder="ID del Colaborador" required min="1"
+            />
+            <button type="submit" style={btnStyle} disabled={buscarLoading}>
+              {buscarLoading ? 'Buscando...' : 'Buscar'}
             </button>
+            {(usuarioEncontrado || buscarError) && (
+              <button type="button" onClick={handleLimpiarBusqueda} style={btnStyle}>Limpiar</button>
+            )}
           </form>
-        </div>
 
-        {/* Listado de Personal */}
-        <div style={{ ...sectionStyle, gridColumn: '1 / -1' }}>
-          <h3>Listado de Colaboradores</h3>
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <th style={thStyle}>Nombre</th>
-                <th style={thStyle}>Email</th>
-                <th style={thStyle}>Cargo</th>
-                <th style={thStyle}>Categoría</th>
-                <th style={thStyle}>Sueldo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map(u => (
-                <tr key={u.id}>
-                  <td style={tdStyle}>{u.nombre}</td>
-                  <td style={tdStyle}>{u.email}</td>
-                  <td style={tdStyle}>{u.cargo?.nombreCargo || 'N/A'}</td>
-                  <td style={tdStyle}>{u.categoria?.categoria || 'N/A'}</td>
-                  <td style={tdStyle}>${u.sueldo?.toLocaleString() || '0'}</td>
+          {buscarError && ( <div style={alertDangerStyle}>{buscarError}</div> )}
+
+          {usuarioEncontrado && (
+            <div style={{ border: '1px solid black', padding: '15px', backgroundColor: '#fff', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ddd', paddingBottom: '8px', marginBottom: '10px' }}>
+                <h4 style={{ margin: 0 }}>Ficha del Trabajador (ID: {usuarioEncontrado.id})</h4>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button style={btnEditStyle} onClick={() => iniciarEdicion(usuarioEncontrado)}>Editar</button>
+                  <button style={btnDangerStyle} onClick={() => onEliminarTrabajador(usuarioEncontrado.id, usuarioEncontrado.nombre)}>Eliminar</button>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                <p style={{ margin: '4px 0' }}><strong>Nombre:</strong> {usuarioEncontrado.nombre}</p>
+                <p style={{ margin: '4px 0' }}><strong>Email:</strong> {usuarioEncontrado.email}</p>
+                <p style={{ margin: '4px 0' }}><strong>Sueldo:</strong> ${usuarioEncontrado.sueldo?.toLocaleString() || '0'}</p>
+                <p style={{ margin: '4px 0' }}><strong>Cargo:</strong> {usuarioEncontrado.cargo?.nombreCargo || 'N/A'}</p>
+                <p style={{ margin: '4px 0' }}><strong>Categoría:</strong> {usuarioEncontrado.categoria?.categoria || 'N/A'}</p>
+              </div>
+            </div>
+          )}
+        </CollapsibleCard>
+
+        {/* FORMULARIO TRABAJADOR */}
+        <CollapsibleCard 
+          title={modoEdicion !== null ? `Editando Trabajador (ID: ${modoEdicion})` : 'Registrar Nuevo Trabajador'} 
+          isOpen={isOpenFormTrabajador} setIsOpen={setIsOpenFormTrabajador}
+        >
+          {modoEdicion !== null && (
+            <div style={{ backgroundColor: '#fef9c3', border: '1px solid #ca8a04', padding: '10px', marginBottom: '15px', borderRadius: '4px' }}>
+              <strong>Editar trabajador:</strong> Solo se pueden modificar el nombre, sueldo, cargo y categoría.
+              <button onClick={cancelarEdicion} style={{ ...btnStyle, marginLeft: '15px', fontSize: '12px', padding: '4px 8px' }}>
+                Cancelar Edición
+              </button>
+            </div>
+          )}
+          
+          {/* Usamos noValidate para apagar las validaciones nativas de HTML y usar las nuestras en React */}
+          <form onSubmit={onSubmitTrabajador} style={formGridStyle} autoComplete="off" noValidate>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={labelStyle}>Nombre Completo (Máx 80 caract.) *</label>
+              <input name="nombre" placeholder="Ej: Juan Pérez" value={formData.nombre} onChange={handleInput} maxLength="80" autoComplete="off"
+                style={erroresForm.nombre ? inputErrorStyle : inputStyle} 
+              />
+              {erroresForm.nombre && <span style={errorTextStyle}>{erroresForm.nombre}</span>}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={labelStyle}>Correo Electrónico *{modoEdicion !== null ? '(no editable)' : ''}</label>
+              <input name="email" type="email" placeholder="correo@empresa.com" value={formData.email} onChange={handleInput} disabled={modoEdicion !== null} autoComplete="new-password"
+                style={erroresForm.email ? { ...inputErrorStyle, backgroundColor: modoEdicion !== null ? '#f3f4f6' : 'white' } : { ...inputStyle, backgroundColor: modoEdicion !== null ? '#f3f4f6' : 'white', color: modoEdicion !== null ? '#9ca3af' : 'black' }} 
+              />
+              {erroresForm.email && <span style={errorTextStyle}>{erroresForm.email}</span>}
+            </div>
+
+            {modoEdicion === null && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={labelStyle}>Contraseña (mínimo6 caract.) *</label>
+                <input name="password" type="password" placeholder="Mínimo 6 caracteres" value={formData.password} onChange={handleInput} minLength="6" maxLength="20" autoComplete="new-password"
+                  style={erroresForm.password ? inputErrorStyle : inputStyle} 
+                />
+                {erroresForm.password && <span style={errorTextStyle}>{erroresForm.password}</span>}
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={labelStyle}>Sueldo (Mín: 539.000) *</label>
+              <input name="sueldo" type="number" placeholder="Ej: 850000" value={formData.sueldo} onChange={handleInput} min="539000" autoComplete="off"
+                style={erroresForm.sueldo ? inputErrorStyle : inputStyle} 
+              />
+              {erroresForm.sueldo && <span style={errorTextStyle}>{erroresForm.sueldo}</span>}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={labelStyle}>Cargo *</label>
+              <select name="cargoId" value={formData.cargoId} onChange={handleInput} style={erroresForm.cargoId ? inputErrorStyle : inputStyle}>
+                <option value="">Seleccione un Cargo</option>
+                {cargos.map(c => <option key={c.id} value={c.id}>{c.nombreCargo}</option>)}
+              </select>
+              {erroresForm.cargoId && <span style={errorTextStyle}>{erroresForm.cargoId}</span>}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={labelStyle}>Categoría (Rol de acceso) *</label>
+              <select name="categoriaId" value={formData.categoriaId} onChange={handleInput} style={erroresForm.categoriaId ? inputErrorStyle : inputStyle}>
+                <option value="">Seleccione una Categoría</option>
+                {categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.categoria}</option>)}
+              </select>
+              {erroresForm.categoriaId && <span style={errorTextStyle}>{erroresForm.categoriaId}</span>}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '10px' }}>
+              <button type="submit" style={{ ...btnStyle, padding: '10px 20px' }} disabled={loading}>
+                {loading ? 'Procesando...' : (modoEdicion !== null ? 'Guardar Cambios' : 'Crear Cuenta y Ficha')}
+              </button>
+            </div>
+          </form>
+        </CollapsibleCard>
+
+        {/* LISTADO */}
+        <CollapsibleCard title="Listado de Trabajadores" isOpen={isOpenListado} setIsOpen={setIsOpenListado}>
+          {usuarios.length > 0 && (
+            <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#555' }}>
+              Total: <strong>{usuarios.length}</strong> trabajador(es) registrado(s).
+            </p>
+          )}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <th style={thStyle}>ID</th><th style={thStyle}>Nombre</th><th style={thStyle}>Email</th>
+                  <th style={thStyle}>Cargo</th><th style={thStyle}>Categoría</th><th style={thStyle}>Sueldo</th>
+                  <th style={{ ...thStyle, textAlign: 'center' }}>Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {usuarios.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ ...tdStyle, textAlign: 'center', fontStyle: 'italic' }}>
+                      {loading ? 'Cargando trabajadores...' : 'No hay trabajadores registrados.'}
+                    </td>
+                  </tr>
+                ) : (
+                  usuarios.map(u => (
+                    <tr key={u.id} style={{ backgroundColor: modoEdicion === u.id ? '#fef9c3' : 'transparent' }}>
+                      <td style={tdStyle}>{u.id}</td><td style={tdStyle}>{u.nombre}</td><td style={tdStyle}>{u.email}</td>
+                      <td style={tdStyle}>{u.cargo?.nombreCargo || 'N/A'}</td><td style={tdStyle}>{u.categoria?.categoria || 'N/A'}</td>
+                      <td style={tdStyle}>${u.sueldo?.toLocaleString() || '0'}</td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                          <button style={btnEditStyle} onClick={() => iniciarEdicion(u)}>Editar</button>
+                          <button style={btnDangerStyle} onClick={() => onEliminarTrabajador(u.id, u.nombre)}>Eliminar</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CollapsibleCard>
       </div>
     </div>
   );
 };
 
-// Estilos Básicos (Apariencia Default HTML)
-const cardStyle = { padding: '15px', border: '1px solid black', flex: 1, backgroundColor: '#f0f0f0' };
+// --- ESTILOS ---
+const cardStyle = { padding: '15px', border: '1px solid black', flex: '1 1 150px', backgroundColor: '#f0f0f0' };
 const sectionStyle = { padding: '15px', border: '1px solid black', backgroundColor: '#f9f9f9' };
-const inputStyle = { padding: '5px', border: '1px solid #777' };
-const inputGroupStyle = { display: 'flex', gap: '5px', marginBottom: '15px' };
+
+// Estilos de Input Normal y con Error
+const inputStyle = { padding: '8px', border: '1px solid #777', fontSize: '14px', width: '100%', boxSizing: 'border-box', outline: 'none' };
+const inputErrorStyle = { ...inputStyle, border: '2px solid #dc2626', backgroundColor: '#fef2f2' };
+const errorTextStyle = { color: '#dc2626', fontSize: '12px', marginTop: '2px', fontWeight: 'bold' };
+
+const labelStyle = { fontSize: '13px', fontWeight: '500', color: '#334155' };
+const inputGroupStyle = { display: 'flex', gap: '8px', marginBottom: '15px' };
 const listStyle = { paddingLeft: '0', listStyle: 'none', margin: '0' };
-const listItemStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px', borderBottom: '1px solid #ccc', paddingBottom: '5px' };
-const formGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' };
-const tableStyle = { width: '100%', borderCollapse: 'collapse', border: '1px solid black', marginTop: '10px' };
-const thStyle = { padding: '8px', border: '1px solid black', backgroundColor: '#e0e0e0', textAlign: 'left' };
-const tdStyle = { padding: '8px', border: '1px solid black' };
-const btnStyle = { padding: '5px 10px', cursor: 'pointer', border: '1px solid black', backgroundColor: '#e0e0e0', color: 'black' };
+const listItemStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', borderBottom: '1px solid #e5e7eb', paddingBottom: '6px' };
+const formGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' };
+const tableStyle = { width: '100%', borderCollapse: 'collapse', border: '1px solid black', marginTop: '5px' };
+const thStyle = { padding: '8px', border: '1px solid black', backgroundColor: '#e0e0e0', textAlign: 'left', whiteSpace: 'nowrap' };
+const tdStyle = { padding: '8px', border: '1px solid black', verticalAlign: 'middle' };
+const btnStyle = { padding: '8px 12px', cursor: 'pointer', border: '1px solid black', backgroundColor: '#e0e0e0', color: 'black', fontWeight: '500', whiteSpace: 'nowrap' };
+const btnEditStyle = { padding: '5px 10px', cursor: 'pointer', border: '1px solid #1d4ed8', backgroundColor: '#dbeafe', color: '#1e3a8a', fontWeight: '500', whiteSpace: 'nowrap' };
+const btnDangerStyle = { padding: '5px 10px', cursor: 'pointer', border: '1px solid #991b1b', backgroundColor: '#fee2e2', color: '#991b1b', fontWeight: '500', whiteSpace: 'nowrap' };
+const alertDangerStyle = { color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px', border: '1px solid #fca5a5', marginTop: '10px', borderRadius: '4px' };
+
+const CollapsibleCard = ({ title, children, isOpen, setIsOpen }) => {
+  return (
+    <div style={sectionStyle}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)} 
+        style={{ 
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+          cursor: 'pointer', borderBottom: isOpen ? '1px solid black' : 'none',
+          paddingBottom: isOpen ? '10px' : '0px', userSelect: 'none'
+        }}
+      >
+        <h3 style={{ margin: 0 }}>{title}</h3>
+        <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{isOpen ? '▲ Contraer' : '▼ Expandir'}</span>
+      </div>
+      {isOpen && ( <div style={{ marginTop: '15px' }}>{children}</div> )}
+    </div>
+  );
+};
 
 export default RecursosView;

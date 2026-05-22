@@ -18,7 +18,7 @@ export const useLoginViewModel = () => {
     setError(null);
     try {
       await AuthService.login(email, password);
-      navigate("/recursos"); // Si es exitoso, entra a la app
+      navigate('/monitoreo'); // Si es exitoso, entra a la app
     } catch (err) {
       setError("Credenciales incorrectas. Verifica tu usuario y contraseña.");
     } finally {
