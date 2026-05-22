@@ -117,7 +117,89 @@ export const useRecursosViewModel = () => {
     }
   };
 
+  // ACTUALIZAR TRABAJADOR (solo nombre, sueldo, cargoId, categoriaId - NO email ni password):
+  const editarTrabajador = async (id, datosFormulario) => {
+    try {
+      const datosActualizados = {
+        nombre: datosFormulario.nombre,
+        sueldo: datosFormulario.sueldo ? parseInt(datosFormulario.sueldo) : 0,
+        cargoId: parseInt(datosFormulario.cargoId),
+        categoriaId: parseInt(datosFormulario.categoriaId)
+      };
+      await RecursosService.updateUsuario(id, datosActualizados);
+      await fetchData();
+      return { success: true };
+    } catch (error) {
+      console.error("Error al actualizar trabajador:", error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // ELIMINAR TRABAJADOR de la base de datos PostgreSQL:
+  const eliminarTrabajador = async (id) => {
+    try {
+      await RecursosService.deleteUsuario(id);
+      await fetchData();
+      return { success: true };
+    } catch (error) {
+      console.error("Error al eliminar trabajador:", error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  // ESTADOS Y MÉTODOS PARA BUSCAR USUARIO POR ID:
+  const [usuarioEncontrado, setUsuarioEncontrado] = useState(null);
+  const [buscarLoading, setBuscarLoading] = useState(false);
+  const [buscarError, setBuscarError] = useState(null);
+
+  const buscarUsuarioPorId = async (id) => {
+    if (!id) {
+      setBuscarError("Por favor, ingrese un ID válido.");
+      setUsuarioEncontrado(null);
+      return;
+    }
+    setBuscarLoading(true);
+    setBuscarError(null);
+    try {
+      const uData = await RecursosService.getUsuarioById(id);
+      if (uData) {
+        setUsuarioEncontrado(uData);
+      } else {
+        setUsuarioEncontrado(null);
+        setBuscarError("No se encontró ningún colaborador con ese ID.");
+      }
+    } catch (error) {
+      console.error("Error al buscar usuario por ID:", error);
+      setUsuarioEncontrado(null);
+      setBuscarError("Error al buscar colaborador. Verifique que el ID existe y es correcto.");
+    } finally {
+      setBuscarLoading(false);
+    }
+  };
+
+  const limpiarBusqueda = () => {
+    setUsuarioEncontrado(null);
+    setBuscarError(null);
+  };
+
   useEffect(() => { fetchData(); }, []);
 
-  return { usuarios, categorias, cargos, loading, agregarCategoria, agregarCargo, eliminarCategoria, eliminarCargo, agregarTrabajador };
+  return { 
+    usuarios, 
+    categorias, 
+    cargos, 
+    loading, 
+    agregarCategoria, 
+    agregarCargo, 
+    eliminarCategoria, 
+    eliminarCargo, 
+    agregarTrabajador,
+    editarTrabajador,
+    eliminarTrabajador,
+    usuarioEncontrado,
+    buscarLoading,
+    buscarError,
+    buscarUsuarioPorId,
+    limpiarBusqueda
+  };
 };
