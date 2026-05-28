@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMetricasViewModel } from '../../viewmodels/useMetricasViewModel';
+import { useMetricasViewModel } from '../../viewmodels/useMetricasViewmodel';
 
 const MetricasView = () => {
   const { 
