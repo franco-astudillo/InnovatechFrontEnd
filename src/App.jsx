@@ -11,6 +11,7 @@ import MonitoreoView from './view/pages/MonitoreoView';
 import CrearProyectoView from './view/pages/CrearProyectoView';
 import MiProyectoView from './view/pages/MiProyectoView';
 import TableroTrabajoView from './view/pages/TableroTrabajoView';
+import MetricasView from './view/pages/MetricasView';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
             <Route path="/crear-proyecto" element={<CrearProyectoView />} />
             <Route path="/mi-proyecto" element={<MiProyectoView />} />
             <Route path="/tablero-trabajo" element={<TableroTrabajoView />} />
+            <Route path="/metricas-historicas" element={<MetricasView />} />
           </Route>
         </Route>
 
