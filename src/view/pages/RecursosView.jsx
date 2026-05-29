@@ -365,7 +365,7 @@ const RecursosView = () => {
             <table style={tableStyle}>
               <thead>
                 <tr>
-                  <th style={thStyle}>ID</th><th style={thStyle}>Nombre</th><th style={thStyle}>Email</th>
+                  <th style={thStyle}>Nombre</th><th style={thStyle}>Email</th>
                   <th style={thStyle}>Cargo</th><th style={thStyle}>Categoría</th><th style={thStyle}>Sueldo</th>
                   <th style={{ ...thStyle, textAlign: 'center' }}>Acciones</th>
                 </tr>
@@ -380,7 +380,7 @@ const RecursosView = () => {
                 ) : (
                   usuarios.map(u => (
                     <tr key={u.id} style={{ backgroundColor: modoEdicion === u.id ? '#fef9c3' : 'transparent' }}>
-                      <td style={tdStyle}>{u.id}</td><td style={tdStyle}>{u.nombre}</td><td style={tdStyle}>{u.email}</td>
+                      <td style={tdStyle}>{u.nombre}</td><td style={tdStyle}>{u.email}</td>
                       <td style={tdStyle}>{u.cargo?.nombreCargo || 'N/A'}</td><td style={tdStyle}>{u.categoria?.categoria || 'N/A'}</td>
                       <td style={tdStyle}>${u.sueldo?.toLocaleString() || '0'}</td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>

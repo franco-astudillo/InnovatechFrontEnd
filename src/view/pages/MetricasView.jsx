@@ -83,7 +83,6 @@ const MetricasView = () => {
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thStyle}>ID</th>
                 <th style={thStyle}>Proyecto Asociado</th>
                 <th style={thStyle}>Nombre KPI</th>
                 <th style={thStyle}>Valor</th>
@@ -100,7 +99,6 @@ const MetricasView = () => {
               ) : (
                 metricas.map(m => (
                   <tr key={m.id}>
-                    <td style={tdStyle}>{m.id}</td>
                     {/* Buscamos el nombre del proyecto cruzando los datos */}
                     <td style={{ ...tdStyle, fontWeight: 'bold' }}>{obtenerNombreProyecto(m.proyectoId)}</td>
                     <td style={tdStyle}>{m.nombreKpi}</td>
