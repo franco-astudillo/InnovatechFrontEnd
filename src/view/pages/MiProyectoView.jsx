@@ -44,7 +44,6 @@ const MiProyectoView = () => {
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thStyle}>ID</th>
                 <th style={thStyle}>Nombre del Proyecto</th>
                 <th style={thStyle}>Descripción</th>
                 <th style={thStyle}>Estado</th>
@@ -61,7 +60,6 @@ const MiProyectoView = () => {
               ) : (
                 proyectos.map(p => (
                   <tr key={p.id}>
-                    <td style={tdStyle}>{p.id}</td>
                     <td style={tdStyle}><strong>{p.nombreProyecto}</strong></td>
                     <td style={tdStyle}>{p.descripcionProyecto || 'Sin descripción'}</td>
                     <td style={tdStyle}>

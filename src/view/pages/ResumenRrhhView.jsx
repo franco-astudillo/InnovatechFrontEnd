@@ -107,7 +107,6 @@ const ResumenRrhhView = () => {
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thStyle}>ID</th>
                 <th style={thStyle}>Nombre</th>
                 <th style={thStyle}>Email</th>
                 <th style={thStyle}>Cargo</th>
@@ -125,7 +124,6 @@ const ResumenRrhhView = () => {
               ) : (
                 usuarios.map(u => (
                   <tr key={u.id}>
-                    <td style={tdStyle}>{u.id}</td>
                     <td style={tdStyle}>{u.nombre}</td>
                     <td style={tdStyle}>{u.email}</td>
                     <td style={tdStyle}>{u.cargo?.nombreCargo || 'N/A'}</td>
