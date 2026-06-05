@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { MetricasService } from '../service/MetricasService';
-import { ProyectoService } from '../service/ProyectoService'; // Importamos el servicio de proyectos
+import { ProyectoService } from '../service/ProyectoService'; 
 
 export const useMetricasViewModel = () => {
   const [metricas, setMetricas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estado para el formulario de nueva métrica
+  // Nuevo estado para saber si estamos editando
+  const [metricaEditando, setMetricaEditando] = useState(null);
+
   const [nuevaMetrica, setNuevaMetrica] = useState({
     nombreKpi: '',
     valorCalculado: '',
@@ -22,10 +24,9 @@ export const useMetricasViewModel = () => {
   const fetchDatos = async () => {
     setLoading(true);
     try {
-      // Cargamos métricas y proyectos al mismo tiempo
       const [metricasData, proyectosData] = await Promise.all([
         MetricasService.getAll(),
-        ProyectoService.getProyectos() // Asume que tienes un método listar() o getAll() en ProyectoService
+        ProyectoService.getProyectos() 
       ]);
 
       const activeMetricas = metricasData || [];
@@ -49,25 +50,60 @@ export const useMetricasViewModel = () => {
     setNuevaMetrica({ ...nuevaMetrica, [name]: value });
   };
 
-  const crearMetrica = async (e) => {
+  // Cargar datos en el formulario para editar
+  const iniciarEdicion = (metrica) => {
+    setMetricaEditando(metrica);
+    setNuevaMetrica({
+      nombreKpi: metrica.nombreKpi,
+      valorCalculado: metrica.valorCalculado,
+      proyectoId: metrica.proyectoId || ''
+    });
+  };
+
+  // Limpiar el formulario y salir del modo edición
+  const cancelarEdicion = () => {
+    setMetricaEditando(null);
+    setNuevaMetrica({ nombreKpi: '', valorCalculado: '', proyectoId: '' });
+  };
+
+  // Función unificada para Guardar o Actualizar
+  const guardarMetrica = async (e) => {
     e.preventDefault();
     try {
       const dto = {
         nombreKpi: nuevaMetrica.nombreKpi,
         valorCalculado: parseFloat(nuevaMetrica.valorCalculado),
         proyectoId: nuevaMetrica.proyectoId ? parseInt(nuevaMetrica.proyectoId) : null,
-        fechaCalculo: new Date().toISOString().split('T')[0] // Fecha actual en formato YYYY-MM-DD
+        fechaCalculo: metricaEditando ? metricaEditando.fechaCalculo : new Date().toISOString().split('T')[0]
       };
 
-      await MetricasService.create(dto);
-      alert('Métrica creada exitosamente');
+      if (metricaEditando) {
+        await MetricasService.update(metricaEditando.id, dto);
+        alert('Métrica actualizada exitosamente');
+      } else {
+        await MetricasService.create(dto);
+        alert('Métrica creada exitosamente');
+      }
       
-      // Limpiamos el formulario y recargamos los datos
-      setNuevaMetrica({ nombreKpi: '', valorCalculado: '', proyectoId: '' });
+      cancelarEdicion();
       fetchDatos();
     } catch (error) {
-      console.error("Error al crear métrica:", error);
-      alert('Hubo un error al crear la métrica');
+      console.error("Error al guardar métrica:", error);
+      alert('Hubo un error al guardar la métrica');
+    }
+  };
+
+  // Función para eliminar
+  const eliminarMetrica = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta métrica? Esta acción no se puede deshacer.')) {
+      try {
+        await MetricasService.delete(id);
+        alert('Métrica eliminada exitosamente');
+        fetchDatos(); 
+      } catch (error) {
+        console.error("Error al eliminar métrica:", error);
+        alert('Hubo un error al eliminar la métrica');
+      }
     }
   };
 
@@ -81,8 +117,12 @@ export const useMetricasViewModel = () => {
     kpis,
     loading,
     nuevaMetrica,
+    metricaEditando,
     manejarCambioFormulario,
-    crearMetrica,
+    guardarMetrica,
+    iniciarEdicion,
+    cancelarEdicion,
+    eliminarMetrica,
     refreshMetricas: fetchDatos
   };
 };
