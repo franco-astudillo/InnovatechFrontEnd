@@ -4,13 +4,13 @@ import { useMetricasViewModel } from '../../viewmodels/useMetricasViewmodel';
 const MetricasView = () => {
   const { 
     metricas, proyectos, kpis, loading, refreshMetricas, 
-    nuevaMetrica, manejarCambioFormulario, crearMetrica 
+    nuevaMetrica, metricaEditando, manejarCambioFormulario, 
+    guardarMetrica, iniciarEdicion, cancelarEdicion, eliminarMetrica 
   } = useMetricasViewModel();
   
   const [isOpenListado, setIsOpenListado] = useState(true);
   const [isOpenFormulario, setIsOpenFormulario] = useState(true);
 
-  // Función auxiliar para obtener el nombre del proyecto dado su ID
   const obtenerNombreProyecto = (id) => {
     if (!id) return 'Global / Sin Asignar';
     const proyecto = proyectos.find(p => p.id === id);
@@ -26,7 +26,6 @@ const MetricasView = () => {
         </button>
       </div>
 
-      {/* Tarjetas Informativas Generales (KPIs) */}
       <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', flexWrap: 'wrap' }}>
         <div style={cardStyle}>
           <h4 style={{ margin: '0 0 10px 0' }}>Métricas Registradas</h4>
@@ -38,9 +37,9 @@ const MetricasView = () => {
         </div>
       </div>
 
-      {/* Formulario para Crear Nueva Métrica */}
-      <CollapsibleCard title="Asignar Nueva Métrica a Proyecto" isOpen={isOpenFormulario} setIsOpen={setIsOpenFormulario}>
-        <form onSubmit={crearMetrica} style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      {/* Formulario Adaptado para Crear/Editar */}
+      <CollapsibleCard title={metricaEditando ? "Editar Métrica" : "Asignar Nueva Métrica a Proyecto"} isOpen={isOpenFormulario} setIsOpen={setIsOpenFormulario}>
+        <form onSubmit={guardarMetrica} style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', flex: '1' }}>
             <label style={labelStyle}>Proyecto:</label>
             <select name="proyectoId" value={nuevaMetrica.proyectoId} onChange={manejarCambioFormulario} style={inputStyle}>
@@ -55,7 +54,7 @@ const MetricasView = () => {
             <label style={labelStyle}>Nombre del KPI:</label>
             <input 
               type="text" name="nombreKpi" required
-              placeholder="Ej: Progreso Tareas, Rendimiento..." 
+              placeholder="Ej: Progreso Tareas..." 
               value={nuevaMetrica.nombreKpi} onChange={manejarCambioFormulario} 
               style={inputStyle} 
             />
@@ -71,23 +70,30 @@ const MetricasView = () => {
             />
           </div>
 
-          <button type="submit" style={{ ...btnStyle, backgroundColor: '#4CAF50', color: 'white', border: 'none', height: '38px', padding: '0 20px' }}>
-            Guardar Métrica
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="submit" style={{ ...btnStyle, height: '38px', padding: '0 20px' }}>
+              {metricaEditando ? 'Actualizar Métrica' : 'Guardar Métrica'}
+            </button>
+            {metricaEditando && (
+              <button type="button" onClick={cancelarEdicion} style={{ ...btnStyle, height: '38px', padding: '0 20px' }}>
+                Cancelar
+              </button>
+            )}
+          </div>
         </form>
       </CollapsibleCard>
 
-      {/* Listado de Métricas */}
+      {/* Listado de Métricas con Botones */}
       <CollapsibleCard title="Listado Histórico de Métricas" isOpen={isOpenListado} setIsOpen={setIsOpenListado}>
         <div style={{ overflowX: 'auto' }}>
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thStyle}>ID</th>
                 <th style={thStyle}>Proyecto Asociado</th>
                 <th style={thStyle}>Nombre KPI</th>
                 <th style={thStyle}>Valor</th>
                 <th style={thStyle}>Fecha de Cálculo</th>
+                <th style={{...thStyle, textAlign: 'center'}}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -100,12 +106,22 @@ const MetricasView = () => {
               ) : (
                 metricas.map(m => (
                   <tr key={m.id}>
-                    <td style={tdStyle}>{m.id}</td>
-                    {/* Buscamos el nombre del proyecto cruzando los datos */}
                     <td style={{ ...tdStyle, fontWeight: 'bold' }}>{obtenerNombreProyecto(m.proyectoId)}</td>
                     <td style={tdStyle}>{m.nombreKpi}</td>
                     <td style={tdStyle}>{m.valorCalculado}</td>
                     <td style={tdStyle}>{m.fechaCalculo}</td>
+                    <td style={{...tdStyle, textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center'}}>
+                      <button 
+                        onClick={() => iniciarEdicion(m)} 
+                        style={{ ...btnStyle, padding: '4px 8px', fontSize: '13px' }}>
+                        Editar
+                      </button>
+                      <button 
+                        onClick={() => eliminarMetrica(m.id)} 
+                        style={{ ...btnStyle, padding: '4px 8px', fontSize: '13px' }}>
+                        Eliminar
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -127,13 +143,12 @@ const btnStyle = { padding: '8px 12px', cursor: 'pointer', border: '1px solid bl
 const labelStyle = { marginBottom: '5px', fontSize: '14px', fontWeight: 'bold' };
 const inputStyle = { padding: '8px', border: '1px solid #ccc', borderRadius: '4px', height: '38px', boxSizing: 'border-box' };
 
-// Componente Tarjeta Colapsable
 const CollapsibleCard = ({ title, children, isOpen, setIsOpen }) => {
   return (
     <div style={sectionStyle}>
       <div 
         onClick={() => setIsOpen(!isOpen)} 
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: isOpen ? '1px solid black' : 'none', paddingBottom: isOpen ? '10px' : '0px', userSelect: 'none' }}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: isOpen ? '1px solid black' : 'none', paddingBottom: isOpen ? '10px' : '0', userSelect: 'none' }}
       >
         <h3 style={{ margin: 0 }}>{title}</h3>
         <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{isOpen ? '▲ Contraer' : '▼ Expandir'}</span>

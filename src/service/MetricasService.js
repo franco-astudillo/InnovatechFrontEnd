@@ -32,5 +32,25 @@ export const MetricasService = {
       throw error;
     }
   },
+
+  update: async (id, metricaDto) => {
+    try {
+      const response = await api.put(`${RESOURCE_PATH}/${id}`, metricaDto);
+      return response.data;
+    } catch (error) {
+      console.error(`Error actualizando métrica con id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`${RESOURCE_PATH}/${id}`);
+      return response.status === 204;
+    } catch (error) {
+      console.error(`Error eliminando métrica con id ${id}:`, error);
+      throw error;
+    }
+  }
   
 };
