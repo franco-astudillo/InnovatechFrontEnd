@@ -25,5 +25,15 @@ export const RecursosService = {
   deleteUsuario: async (id) => {
     const response = await api.delete(`/api/v1/usuarios/${id}`);
     return response.data;
+  },
+
+  //Obtener info del usuario logeado usando el token que envía el ApiService
+  
+
+  cambiarEstadoConexion: async (id, estado) => {
+    const response = await api.patch(`/api/v1/usuarios/${id}/estado-conexion?logeado=${estado}`);
+    return response.data;
   }
+
+
 };
