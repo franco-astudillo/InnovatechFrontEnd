@@ -112,6 +112,7 @@ const ResumenRrhhView = () => {
                 <th style={thStyle}>Cargo</th>
                 <th style={thStyle}>Categoría</th>
                 <th style={thStyle}>Sueldo</th>
+                <th style={thStyle}>Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -129,6 +130,13 @@ const ResumenRrhhView = () => {
                     <td style={tdStyle}>{u.cargo?.nombreCargo || 'N/A'}</td>
                     <td style={tdStyle}>{u.categoria?.categoria || 'N/A'}</td>
                     <td style={tdStyle}>${u.sueldo?.toLocaleString() || '0'}</td>
+                    <td style={tdStyle}>
+                      {u.logeado ? (
+                        <span style={{ color: 'green', fontWeight: 'bold' }}>Activo</span>
+                      ) : (
+                        <span style={{ color: 'red', fontWeight: 'bold' }}>Inactivo</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
