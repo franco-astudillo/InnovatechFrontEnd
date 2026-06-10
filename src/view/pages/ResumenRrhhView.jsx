@@ -131,7 +131,7 @@ const ResumenRrhhView = () => {
                     <td style={tdStyle}>{u.categoria?.categoria || 'N/A'}</td>
                     <td style={tdStyle}>${u.sueldo?.toLocaleString() || '0'}</td>
                     <td style={tdStyle}>
-                      {u.logeado ? (
+                      {u.activo ? (
                         <span style={{ color: 'green', fontWeight: 'bold' }}>Activo</span>
                       ) : (
                         <span style={{ color: 'red', fontWeight: 'bold' }}>Inactivo</span>

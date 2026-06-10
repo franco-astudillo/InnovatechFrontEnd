@@ -200,7 +200,7 @@ const RecursosView = () => {
               <li style={{ fontStyle: 'italic', color: '#666', padding: '5px 0' }}>No hay categorías registradas.</li>
             ) : categorias.map(c => (
               <li key={c.id} style={globalStyles.listItem}>
-                <span><strong>#{c.id}</strong> — {c.categoria}</span>
+                <span>{c.categoria}</span>
                 <button style={globalStyles.btnDanger} onClick={() => eliminarCategoria(c.id)}>Eliminar</button>
               </li>
             ))}
@@ -227,7 +227,7 @@ const RecursosView = () => {
               <li style={{ fontStyle: 'italic', color: '#666', padding: '5px 0' }}>No hay cargos registrados.</li>
             ) : cargos.map(c => (
               <li key={c.id} style={globalStyles.listItem}>
-                <span><strong>#{c.id}</strong> — {c.nombreCargo}</span>
+                <span>{c.nombreCargo}</span>
                 <button style={globalStyles.btnDanger} onClick={() => eliminarCargo(c.id)}>Eliminar</button>
               </li>
             ))}
