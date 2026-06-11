@@ -70,15 +70,15 @@ export const useMainLayoutViewModel = () => {
     if (role === 'admin') return true; // El admin puede ver y acceder a todo
 
     if (role === 'rrhh' || role === 'recursos humanos') {
-      return ['/recursos', '/resumen-rrhh', '/monitoreo', '/metricas-historicas'].includes(path);
+      return ['/recursos', '/resumen-rrhh', '/monitoreo', '/metricas-historicas', '/perfil'].includes(path);
     }
 
     if (role === 'pm' || role === 'project manager' || role === 'lider de proyecto') {
-      return ['/monitoreo', '/crear-proyecto', '/mi-proyecto', '/metricas-historicas'].includes(path);
+      return ['/monitoreo', '/crear-proyecto', '/mi-proyecto', '/metricas-historicas', '/perfil'].includes(path);
     }
 
     if (role === 'trabajador' || role === 'colaborador') {
-      return ['/monitoreo','/mi-proyecto', '/tablero-trabajo'].includes(path);
+      return ['/monitoreo','/mi-proyecto', '/tablero-trabajo', '/perfil'].includes(path);
     }
 
     return false;
@@ -93,7 +93,7 @@ export const useMainLayoutViewModel = () => {
     { path: '/mi-proyecto', label: 'Mi Proyecto (KPI)', roles: ['admin', 'pm', 'project manager', 'lider de proyecto', 'trabajador', 'colaborador'] },
     { path: '/tablero-trabajo', label: 'Tablero de Tareas', roles: ['admin', 'trabajador', 'colaborador'] },
     { path: '/metricas-historicas', label: 'Metricas Historicas', roles: ['admin', 'rrhh', 'recursos humanos', 'pm', 'project manager', 'lider de proyecto'] },
-    
+    { path: '/perfil', label: 'Mi Perfil', roles: ['admin', 'rrhh', 'recursos humanos', 'pm', 'project manager', 'lider de proyecto', 'trabajador', 'colaborador'] }
   ];
 
   // Filtrar enlaces permitidos según el rol del usuario logueado
