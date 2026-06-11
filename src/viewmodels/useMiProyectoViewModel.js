@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ProyectoService } from '../service/ProyectoService';
-import { MetricasService } from '../service/MetricasService'; 
+import { MetricasService } from '../service/MetricasService'; // <-- 1. Importamos MetricasService
 import api from '../service/ApiService';
 
 export const useMiProyectoViewModel = () => {
@@ -56,24 +56,7 @@ export const useMiProyectoViewModel = () => {
 
   const agregarProyecto = async (formData) => {
     try {
-      //Guardamos el proyecto en Java y capturamos la respuesta (que debe contener el ID generado)
-      const nuevoProyecto = await ProyectoService.crearProyecto(formData);
-      
-      //ORQUESTACIÓN: Si el proyecto se creó correctamente y tenemos su ID, creamos la métrica
-      if (nuevoProyecto && nuevoProyecto.id) {
-        try {
-          await MetricasService.create({
-            proyectoId: nuevoProyecto.id,
-            nombreKpi: 'Progreso General de Tareas',
-            valorCalculado: 0.0, // Nace en 0%
-            fechaCalculo: new Date().toISOString().split('T')[0]
-          });
-        } catch (metricaError) {
-          // Si el microservicio de métricas falla, no bloqueamos al usuario. El proyecto ya existe.
-          console.warn("Proyecto creado, pero falló la inicialización de la métrica en Node:", metricaError);
-        }
-      }
-
+      await ProyectoService.crearProyecto(formData);
       await cargarProyectos();
       return { success: true };
     } catch (err) {
@@ -93,9 +76,26 @@ export const useMiProyectoViewModel = () => {
     }
   };
 
+  // --- LÓGICA PARA ELIMINAR PROYECTO Y SU MÉTRICA ---
   const borrarProyecto = async (id) => {
     try {
+      // Eliminamos el proyecto primero en Spring Boot
       await ProyectoService.eliminarProyecto(id);
+
+      // Buscamos y eliminamos la métrica asociada en Node.js
+      try {
+        const metricas = await MetricasService.getAll();
+        const metricaAsociada = metricas.find(m => m.proyectoId === id);
+        
+        if (metricaAsociada) {
+          await MetricasService.delete(metricaAsociada.id);
+          console.log(`Métrica asociada al proyecto ${id} eliminada correctamente.`);
+        }
+      } catch (metricaError) {
+        console.warn("Proyecto eliminado, pero hubo un problema al limpiar su métrica:", metricaError);
+      }
+
+      // Recargamos la vista
       await cargarProyectos();
       return { success: true };
     } catch (err) {
