@@ -12,6 +12,7 @@ import CrearProyectoView from './view/pages/CrearProyectoView';
 import MiProyectoView from './view/pages/MiProyectoView';
 import TableroTrabajoView from './view/pages/TableroTrabajoView';
 import MetricasView from './view/pages/MetricasView';
+import MiPerfilView from './view/pages/MiPerfilView';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="/mi-proyecto" element={<MiProyectoView />} />
             <Route path="/tablero-trabajo" element={<TableroTrabajoView />} />
             <Route path="/metricas-historicas" element={<MetricasView />} />
+            <Route path="/perfil" element={<MiPerfilView />} />
           </Route>
         </Route>
 
