@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TableroService } from '../service/TableroService';
 import { ProyectoService } from '../service/ProyectoService';
-import { MetricasService } from '../service/MetricasService'; // <-- IMPORTACIÓN DEL SERVICIO
+import { MetricasService } from '../service/MetricasService';
 import api from '../service/ApiService';
 
 export const useTableroViewModel = () => {
@@ -37,10 +37,10 @@ export const useTableroViewModel = () => {
         
         let usuarioAsignado = null;
         if (asignacionAsociada) {
+          // Forzamos la comparación usando String() en ambos lados para evitar desajustes
           usuarioAsignado = usuarios.find(u => 
-            u.uidFirebase === asignacionAsociada.usuarioId || 
-            u.uid === asignacionAsociada.usuarioId || 
-            u.firebaseUid === asignacionAsociada.usuarioId
+            String(u.uidFirebase) === String(asignacionAsociada.usuarioId) || 
+            String(u.id) === String(asignacionAsociada.usuarioId)
           );
         }
 
@@ -66,29 +66,23 @@ export const useTableroViewModel = () => {
     if (!proyectoId) return;
     
     try {
-      // Obtener el estado actual de las tareas desde el backend para un cálculo exacto
       const todasLasTareas = await TableroService.getTareas();
       const tareasDelProyecto = todasLasTareas.filter(t => 
         (t.proyecto && t.proyecto.id === proyectoId) || t.proyectoId === proyectoId
       );
 
-      // Calcular la proporción
       const totalTareas = tareasDelProyecto.length;
       const completadas = tareasDelProyecto.filter(t => t.progreso === 'Completado').length;
-      
-      // Calculamos el porcentaje
       const nuevoPorcentaje = totalTareas === 0 ? 0.0 : parseFloat(((completadas / totalTareas) * 100).toFixed(2));
 
-      // Buscar la métrica histórica de este proyecto en Node.js
       const metricas = await MetricasService.getAll();
       const metricaProyecto = metricas.find(m => m.proyectoId === proyectoId);
 
-      // Si la métrica existe, disparamos la actualización
       if (metricaProyecto) {
         await MetricasService.update(metricaProyecto.id, {
           ...metricaProyecto,
           valorCalculado: nuevoPorcentaje,
-          fechaCalculo: new Date().toISOString().split('T')[0] // Actualizamos la fecha al día de hoy
+          fechaCalculo: new Date().toISOString().split('T')[0]
         });
       }
     } catch (error) {
@@ -99,28 +93,43 @@ export const useTableroViewModel = () => {
   const agregarTareaYAsignar = async (formData) => {
     try {
       // 1. Creamos la tarea base
-      const nuevaTarea = await TableroService.crearTarea({
+      const tareaPayload = {
         nombreTareas: formData.nombreTareas,
-        descripcionTareas: formData.descripcionTareas,
-        estado: formData.estado,
-        progreso: formData.progreso,
+        descripcionTareas: formData.descripcionTareas || "",
+        estado: formData.estado !== undefined ? formData.estado : true, 
+        progreso: formData.progreso || "Por Hacer", 
         proyectoId: parseInt(formData.proyectoId)
-      });
+      };
 
-      // 2. Si hay un usuario seleccionado, creamos la asignación
-      if (formData.usuarioId && nuevaTarea.id) {
+      console.log("Enviando Tarea al Backend...", tareaPayload);
+      const nuevaTarea = await TableroService.crearTarea(tareaPayload);
+      console.log("Respuesta del Backend (Tarea):", nuevaTarea); // <-- AUDITORÍA CLAVE
+
+      // EXTRACCIÓN SEGURA: Si TableroService ya hace return response.data, el id viene directo.
+      const idGenerado = nuevaTarea.id;
+
+      // 2. Si hay un usuario seleccionado y el ID es válido, creamos la asignación
+      if (formData.usuarioId && idGenerado) {
+        console.log("Creando Asignación para el Usuario:", formData.usuarioId, " en la Tarea:", idGenerado);
+        
         await TableroService.crearAsignacion({
-          tareaId: nuevaTarea.id,
-          usuarioId: formData.usuarioId,
+          tareaId: idGenerado,
+          usuarioId: String(formData.usuarioId),
           fechaAsignacion: new Date().toISOString().split('T')[0],
           estado: true
         });
+        
+        console.log("Asignación creada exitosamente.");
+      } else {
+        alert("ADVERTENCIA: La Tarea se creó, pero el Backend no devolvió un ID para asignarla a Pepe.");
       }
 
       await cargarTablero();
       
-      // Recalcular la métrica porque el total de tareas aumentó
-      await actualizarPorcentajeMetrica(parseInt(formData.proyectoId));
+      // Recalcular métrica
+      if (formData.proyectoId) {
+        await actualizarPorcentajeMetrica(parseInt(formData.proyectoId));
+      }
 
       return { success: true };
     } catch (err) {
@@ -141,8 +150,9 @@ export const useTableroViewModel = () => {
       await TableroService.modificarTarea(tarea.id, tareaModificada);
       await cargarTablero();
 
-      // Recalcular la métrica porque la tarea puede haber pasado a "Completado" (o salido de ese estado)
-      await actualizarPorcentajeMetrica(proyectoIdAsociado);
+      if (proyectoIdAsociado) {
+        await actualizarPorcentajeMetrica(proyectoIdAsociado);
+      }
       
     } catch (err) {
       console.error("Error al mover tarea:", err);
@@ -152,14 +162,12 @@ export const useTableroViewModel = () => {
 
   const eliminarTarea = async (id) => {
     try {
-      // Identificamos el proyecto ANTES de borrar la tarea para saber qué métrica actualizar
       const tareaAEliminar = tareas.find(t => t.id === id);
       const proyectoIdAsociado = tareaAEliminar ? (tareaAEliminar.proyecto?.id || tareaAEliminar.proyectoId) : null;
 
       await TableroService.eliminarTarea(id);
       await cargarTablero();
 
-      // Recalcular la métrica porque el total de tareas disminuyó
       if (proyectoIdAsociado) {
         await actualizarPorcentajeMetrica(proyectoIdAsociado);
       }
