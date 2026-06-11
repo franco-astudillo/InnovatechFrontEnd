@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ProyectoService } from '../service/ProyectoService';
-import { MetricasService } from '../service/MetricasService'; // <-- 1. Importamos MetricasService
+import { MetricasService } from '../service/MetricasService';
 import api from '../service/ApiService';
 
 export const useMiProyectoViewModel = () => {
@@ -13,19 +13,15 @@ export const useMiProyectoViewModel = () => {
     setLoading(true);
     setError(null);
     try {
-      // 1. Cargamos el personal desde Recursos
       const resUsuarios = await api.get('/api/v1/usuarios');
       const listaUsuarios = resUsuarios.data || [];
       setUsuariosRecursos(listaUsuarios);
 
-      // 2. Cargamos la lista de proyectos de la base de datos
       const listaBasica = await ProyectoService.getProyectos();
       
-      // 3. Cruzamos los datos asegurando compatibilidad de nombres de variables
       const listaEnriquecida = await Promise.all(
         listaBasica.map(async (proyecto) => {
           try {
-            // Buscamos al usuario comparando el jefeId del proyecto con el UID de Firebase
             const jefeEncontrado = listaUsuarios.find(u => 
               u.uidFirebase === proyecto.jefeId || 
               u.uid === proyecto.jefeId || 
@@ -54,9 +50,25 @@ export const useMiProyectoViewModel = () => {
     }
   };
 
+  // --- LÓGICA PARA AGREGAR PROYECTO Y CREAR SU MÉTRICA ---
   const agregarProyecto = async (formData) => {
     try {
-      await ProyectoService.crearProyecto(formData);
+      // 1. Creamos el proyecto y capturamos la respuesta (que contiene el ID generado en BD)
+      const proyectoCreado = await ProyectoService.crearProyecto(formData);
+
+      // 2. Creamos instantáneamente la métrica asociada en Node.js usando el ID del nuevo proyecto
+      // 2. Creamos instantáneamente la métrica asociada en Node.js
+      try {
+        await MetricasService.create({
+          proyectoId: proyectoCreado.id,
+          nombreKpi: 'Progreso Inicial', // O el nombre que requiera tu modelo
+          valorCalculado: 0              // Valor numérico inicial
+        });
+        console.log("Métrica creada exitosamente para el proyecto:", proyectoCreado.id);
+      } catch (metricaError) {
+        console.error("El proyecto se creó, pero falló la creación de la métrica:", metricaError);
+      }
+
       await cargarProyectos();
       return { success: true };
     } catch (err) {
@@ -79,17 +91,21 @@ export const useMiProyectoViewModel = () => {
   // --- LÓGICA PARA ELIMINAR PROYECTO Y SU MÉTRICA ---
   const borrarProyecto = async (id) => {
     try {
-      // Eliminamos el proyecto primero en Spring Boot
+      // 1. Eliminamos el proyecto primero en Spring Boot
       await ProyectoService.eliminarProyecto(id);
 
-      // Buscamos y eliminamos la métrica asociada en Node.js
+      // 2. Buscamos y eliminamos la métrica asociada en Node.js
       try {
         const metricas = await MetricasService.getAll();
-        const metricaAsociada = metricas.find(m => m.proyectoId === id);
+        
+        // Convertimos ambos a String para evitar que falle si uno es Integer y otro String
+        const metricaAsociada = metricas.find(m => String(m.proyectoId) === String(id));
         
         if (metricaAsociada) {
           await MetricasService.delete(metricaAsociada.id);
           console.log(`Métrica asociada al proyecto ${id} eliminada correctamente.`);
+        } else {
+          console.warn(`No se encontró métrica para eliminar del proyecto ${id}`);
         }
       } catch (metricaError) {
         console.warn("Proyecto eliminado, pero hubo un problema al limpiar su métrica:", metricaError);
