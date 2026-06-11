@@ -110,17 +110,26 @@ const TableroTrabajoView = () => {
               </select>
             </div>
 
-            {/* SELECCIONADOR DE USUARIO CORREGIDO */}
+          {/* SELECCIONADOR DE USUARIO CORREGIDO */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={globalStyles.label}>Asignar a Colaborador</label>
-              <select name="usuarioId" value={formData.usuarioId} onChange={handleInput} style={globalStyles.input}>
+              <select 
+                name="usuarioId" 
+                value={formData.usuarioId || ""} 
+                onChange={handleInput} 
+                style={globalStyles.input}
+              >
                 <option value="">Asignar más tarde (Sin responsable)</option>
-                {usuariosList.map(u => (
-                   // Usamos estrictamente uidFirebase para sincronizar la asignación
-                   <option key={u.id} value={u.uidFirebase}>
-                     {u.nombre} {u.cargo?.nombreCargo ? `— ${u.cargo.nombreCargo}` : ''}
-                   </option>
-                ))}
+                {usuariosList.map(u => {
+                   // RESPALDO SEGURO: Usamos uidFirebase si existe, sino caemos al ID numérico de la BD
+                   const valorSeguro = u.uidFirebase ? String(u.uidFirebase) : String(u.id);
+                   
+                   return (
+                     <option key={u.id} value={valorSeguro}>
+                       {u.nombre} {u.cargo?.nombreCargo ? `— ${u.cargo.nombreCargo}` : ''}
+                     </option>
+                   );
+                })}
               </select>
             </div>
 
