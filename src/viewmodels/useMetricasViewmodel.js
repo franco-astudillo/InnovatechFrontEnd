@@ -1,20 +1,12 @@
 import { useState, useEffect } from 'react';
 import { MetricasService } from '../service/MetricasService';
 import { ProyectoService } from '../service/ProyectoService'; 
+import { TableroService } from '../service/TableroService'; 
 
 export const useMetricasViewModel = () => {
   const [metricas, setMetricas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Nuevo estado para saber si estamos editando
-  const [metricaEditando, setMetricaEditando] = useState(null);
-
-  const [nuevaMetrica, setNuevaMetrica] = useState({
-    nombreKpi: '',
-    valorCalculado: '',
-    proyectoId: ''
-  });
 
   const [kpis, setKpis] = useState({
     totalMetricas: 0,
@@ -24,14 +16,39 @@ export const useMetricasViewModel = () => {
   const fetchDatos = async () => {
     setLoading(true);
     try {
-      const [metricasData, proyectosData] = await Promise.all([
+      // 2. Descargamos también las tareas globales desde la base de datos
+      const [metricasData, proyectosData, tareasData] = await Promise.all([
         MetricasService.getAll(),
-        ProyectoService.getProyectos() 
+        ProyectoService.getProyectos(),
+        TableroService.getTareas().catch(() => []) // Obtenemos todas las tareas
       ]);
 
       const activeMetricas = metricasData || [];
+      const todasLasTareas = tareasData || [];
+      
+      const proyectosConProgreso = (proyectosData || []).map(proyecto => {
+        // 3. Cruzamos los datos: Filtramos solo las tareas que pertenecen a ESTE proyecto
+        const tareasDelProyecto = todasLasTareas.filter(t => 
+          t.proyecto?.id === proyecto.id || t.proyectoId === proyecto.id
+        );
+
+        const totalTareas = tareasDelProyecto.length;
+        
+        // 4. Ahora sí contamos las completadas (usando t.progreso)
+        const tareasCompletadas = tareasDelProyecto.filter(t => t.progreso === 'COMPLETADA').length;
+        
+        const progreso = totalTareas > 0 ? (tareasCompletadas / totalTareas) * 100 : 0;
+
+        return { 
+          ...proyecto, 
+          progreso: Math.round(progreso), 
+          totalTareas, 
+          tareasCompletadas 
+        };
+      });
+
       setMetricas(activeMetricas);
-      setProyectos(proyectosData || []);
+      setProyectos(proyectosConProgreso);
 
       setKpis({
         totalMetricas: activeMetricas.length,
@@ -45,64 +62,17 @@ export const useMetricasViewModel = () => {
     }
   };
 
-  const manejarCambioFormulario = (e) => {
-    const { name, value } = e.target;
-    setNuevaMetrica({ ...nuevaMetrica, [name]: value });
-  };
-
-  // Cargar datos en el formulario para editar
-  const iniciarEdicion = (metrica) => {
-    setMetricaEditando(metrica);
-    setNuevaMetrica({
-      nombreKpi: metrica.nombreKpi,
-      valorCalculado: metrica.valorCalculado,
-      proyectoId: metrica.proyectoId || ''
-    });
-  };
-
-  // Limpiar el formulario y salir del modo edición
-  const cancelarEdicion = () => {
-    setMetricaEditando(null);
-    setNuevaMetrica({ nombreKpi: '', valorCalculado: '', proyectoId: '' });
-  };
-
-  // Función unificada para Guardar o Actualizar
-  const guardarMetrica = async (e) => {
-    e.preventDefault();
-    try {
-      const dto = {
-        nombreKpi: nuevaMetrica.nombreKpi,
-        valorCalculado: parseFloat(nuevaMetrica.valorCalculado),
-        proyectoId: nuevaMetrica.proyectoId ? parseInt(nuevaMetrica.proyectoId) : null,
-        fechaCalculo: metricaEditando ? metricaEditando.fechaCalculo : new Date().toISOString().split('T')[0]
-      };
-
-      if (metricaEditando) {
-        await MetricasService.update(metricaEditando.id, dto);
-        alert('Métrica actualizada exitosamente');
-      } else {
-        await MetricasService.create(dto);
-        alert('Métrica creada exitosamente');
-      }
-      
-      cancelarEdicion();
-      fetchDatos();
-    } catch (error) {
-      console.error("Error al guardar métrica:", error);
-      alert('Hubo un error al guardar la métrica');
-    }
-  };
-
-  // Función para eliminar
   const eliminarMetrica = async (id) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta métrica? Esta acción no se puede deshacer.')) {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este registro de métrica?')) {
+      setLoading(true);
       try {
         await MetricasService.delete(id);
-        alert('Métrica eliminada exitosamente');
-        fetchDatos(); 
+        await fetchDatos(); 
       } catch (error) {
         console.error("Error al eliminar métrica:", error);
-        alert('Hubo un error al eliminar la métrica');
+        alert('Hubo un error al eliminar la métrica.');
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -111,18 +81,12 @@ export const useMetricasViewModel = () => {
     fetchDatos();
   }, []);
 
-  return {
-    metricas,
-    proyectos,
-    kpis,
-    loading,
-    nuevaMetrica,
-    metricaEditando,
-    manejarCambioFormulario,
-    guardarMetrica,
-    iniciarEdicion,
-    cancelarEdicion,
-    eliminarMetrica,
-    refreshMetricas: fetchDatos
+  return { 
+    metricas, 
+    proyectos, 
+    kpis, 
+    loading, 
+    refreshMetricas: fetchDatos,
+    eliminarMetrica 
   };
 };

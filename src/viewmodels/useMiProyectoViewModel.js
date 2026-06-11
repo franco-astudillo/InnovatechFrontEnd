@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ProyectoService } from '../service/ProyectoService';
+import { MetricasService } from '../service/MetricasService'; 
 import api from '../service/ApiService';
 
 export const useMiProyectoViewModel = () => {
@@ -55,7 +56,24 @@ export const useMiProyectoViewModel = () => {
 
   const agregarProyecto = async (formData) => {
     try {
-      await ProyectoService.crearProyecto(formData);
+      //Guardamos el proyecto en Java y capturamos la respuesta (que debe contener el ID generado)
+      const nuevoProyecto = await ProyectoService.crearProyecto(formData);
+      
+      //ORQUESTACIÓN: Si el proyecto se creó correctamente y tenemos su ID, creamos la métrica
+      if (nuevoProyecto && nuevoProyecto.id) {
+        try {
+          await MetricasService.create({
+            proyectoId: nuevoProyecto.id,
+            nombreKpi: 'Progreso General de Tareas',
+            valorCalculado: 0.0, // Nace en 0%
+            fechaCalculo: new Date().toISOString().split('T')[0]
+          });
+        } catch (metricaError) {
+          // Si el microservicio de métricas falla, no bloqueamos al usuario. El proyecto ya existe.
+          console.warn("Proyecto creado, pero falló la inicialización de la métrica en Node:", metricaError);
+        }
+      }
+
       await cargarProyectos();
       return { success: true };
     } catch (err) {
