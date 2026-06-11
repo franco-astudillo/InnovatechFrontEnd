@@ -26,7 +26,7 @@ export const globalStyles = {
   th: { padding: '8px', border: '1px solid black', backgroundColor: '#e0e0e0', textAlign: 'left', whiteSpace: 'nowrap' },
   td: { padding: '8px', border: '1px solid black', verticalAlign: 'middle' },
   btn: { padding: '8px 12px', cursor: 'pointer', border: '1px solid black', backgroundColor: '#e0e0e0', color: 'black', fontWeight: '500', whiteSpace: 'nowrap' },
-  btnEdit: { padding: '5px 10px', cursor: 'pointer', border: `1px solid ${colors.primary}`, backgroundColor: colors.primaryBg, color: '#1e3a8a', fontWeight: '500', whiteSpace: 'nowrap' },
+  btnEdit: { padding: '5px 10px', cursor: 'pointer', border: `1px solid ${colors.primary}`, backgroundColor: colors.primaryBg, color: '#8b8f99', fontWeight: '500', whiteSpace: 'nowrap' },
   btnDanger: { padding: '5px 10px', cursor: 'pointer', border: `1px solid ${colors.danger}`, backgroundColor: colors.dangerBg, color: colors.danger, fontWeight: '500', whiteSpace: 'nowrap' },
   alertDanger: { color: '#b91c1c', backgroundColor: '#fef2f2', padding: '10px', border: '1px solid #fca5a5', marginTop: '10px', borderRadius: '4px' }
 };

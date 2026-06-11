@@ -14,18 +14,30 @@ const MiPerfilView = () => {
   if (error) return <div style={globalStyles.alertDanger}>{error}</div>;
   if (!perfil) return null;
 
+  // 1. Proyectos: Solo los que están en curso (activo === true)
+  const proyectosEnCurso = proyectos.filter(p => p.activo === true);
+
+  const tareasEnCurso = tareas.filter(asignacion => {
+    // Si la variable viene vacía por error, asumimos que no está completada
+    const estadoProgreso = asignacion.tarea?.progreso || '';
+    return estadoProgreso !== 'Completado'; 
+  });
+
   return (
     <div style={{ padding: '10px', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      <h2 style={{ marginBottom: '25px', color: '#1e3a8a' }}>Mi Perfil</h2>
+      {/* Título principal en gris muy oscuro */}
+      <h2 style={{ marginBottom: '25px', color: '#1f2937' }}>Mi Perfil</h2>
 
-      <div style={{ ...globalStyles.card, marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: '#e0e7ff', border: '1px solid #1d4ed8' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#1d4ed8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', fontWeight: 'bold' }}>
+      {/* HEADER DEL PERFIL: ESCALA DE GRISES CORPORATIVA */}
+      <div style={{ ...globalStyles.card, marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: '#ffffff', border: '1px solid #d1d5db', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        {/* Círculo del Avatar: Fondo gris oscuro sólido */}
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#374151', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           {perfil.nombre ? perfil.nombre.charAt(0).toUpperCase() : 'U'}
         </div>
         <div>
-          <h3 style={{ margin: '0 0 5px 0', color: '#1e3a8a', fontSize: '24px' }}>{perfil.nombre}</h3>
-          <p style={{ margin: '0', color: '#334155', fontSize: '16px' }}>
-            <span style={{ fontWeight: 'bold' }}>Rol actual:</span> {perfil.categoria?.categoria || 'Sin Categoría'}
+          <h3 style={{ margin: '0 0 5px 0', color: '#1f2937', fontSize: '24px' }}>{perfil.nombre}</h3>
+          <p style={{ margin: '0', color: '#4b5563', fontSize: '16px' }}>
+            <span style={{ fontWeight: 'bold', color: '#374151' }}>Rol actual:</span> {perfil.cargo?.nombreCargo || perfil.categoria?.categoria || 'Sin Categoría'}
           </p>
         </div>
       </div>
@@ -34,36 +46,32 @@ const MiPerfilView = () => {
         
         <CollapsibleCard title="Datos Personales y Laborales" isOpen={isOpenDatos} setIsOpen={setIsOpenDatos}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
-            <div style={{ padding: '10px', backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: '4px' }}>
+            <div style={{ padding: '10px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '4px' }}>
               <label style={{ ...globalStyles.label, color: '#6b7280', display: 'block', marginBottom: '4px' }}>Correo Electrónico</label>
-              <p style={{ margin: 0, fontSize: '16px', fontWeight: '500' }}>{perfil.email}</p>
+              <p style={{ margin: 0, fontSize: '16px', fontWeight: '500', color: '#374151' }}>{perfil.email}</p>
             </div>
-            <div style={{ padding: '10px', backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: '4px' }}>
+            <div style={{ padding: '10px', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '4px' }}>
               <label style={{ ...globalStyles.label, color: '#6b7280', display: 'block', marginBottom: '4px' }}>Cargo</label>
-              <p style={{ margin: 0, fontSize: '16px', fontWeight: '500' }}>{perfil.cargo?.nombreCargo || 'N/A'}</p>
+              <p style={{ margin: 0, fontSize: '16px', fontWeight: '500', color: '#374151' }}>{perfil.cargo?.nombreCargo || 'N/A'}</p>
             </div>
           </div>
         </CollapsibleCard>
 
         {/* PROYECTOS DONDE ES JEFE */}
-        <CollapsibleCard title={`Proyectos a mi Cargo (${proyectos.length})`} isOpen={isOpenProyectos} setIsOpen={setIsOpenProyectos}>
-          {proyectos.length === 0 ? (
-            <p style={{ fontStyle: 'italic', color: '#666' }}>No tienes proyectos a tu cargo en este momento.</p>
+        <CollapsibleCard title={`Proyectos en Curso (${proyectosEnCurso.length})`} isOpen={isOpenProyectos} setIsOpen={setIsOpenProyectos}>
+          {proyectosEnCurso.length === 0 ? (
+            <p style={{ fontStyle: 'italic', color: '#6b7280' }}>No tienes proyectos en curso en este momento.</p>
           ) : (
             <ul style={globalStyles.list}>
-              {proyectos.map((p, index) => (
-                <li key={index} style={{ ...globalStyles.listItem, flexDirection: 'column', alignItems: 'flex-start', backgroundColor: '#fff', padding: '15px', border: `1px solid ${colors.border}`, borderRadius: '4px', marginBottom: '10px' }}>
-                  {/* Cambiamos p.nombre por p.nombreProyecto */}
-                  <h4 style={{ margin: '0 0 8px 0', color: colors.primary }}>{p.nombreProyecto}</h4>
-                  
-                  {/* Cambiamos p.descripcion por p.descripcionProyecto */}
-                  <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: colors.text }}>
-                    <strong>Descripción:</strong> {p.descripcionProyecto}
+              {proyectosEnCurso.map((p, index) => (
+                <li key={index} style={{ ...globalStyles.listItem, flexDirection: 'column', alignItems: 'flex-start', backgroundColor: '#ffffff', padding: '15px', border: '1px solid #e5e7eb', borderRadius: '4px', marginBottom: '10px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>{p.nombreProyecto}</h4>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#4b5563' }}>
+                    <strong style={{ color: '#374151' }}>Descripción:</strong> {p.descripcionProyecto}
                   </p>
-                  
-                  {/* Reemplazamos la lógica de estado haciéndola directamente en el Front */}
-                  <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', backgroundColor: p.activo ? '#dcfce7' : '#f3f4f6', color: p.activo ? '#166534' : '#374151', marginTop: '5px' }}>
-                    Estado: {p.activo ? 'ACTIVO' : 'INACTIVO'}
+                  {/* Etiqueta de Estado en tonos grises */}
+                  <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', marginTop: '5px', fontWeight: '500' }}>
+                    Estado: ACTIVO
                   </span>
                 </li>
               ))}
@@ -72,27 +80,32 @@ const MiPerfilView = () => {
         </CollapsibleCard>
 
         {/* TAREAS ASIGNADAS */}
-        <CollapsibleCard title={`Mis Tareas Asignadas (${tareas.length})`} isOpen={isOpenTareas} setIsOpen={setIsOpenTareas}>
-          {tareas.length === 0 ? (
-            <p style={{ fontStyle: 'italic', color: '#666' }}>No tienes tareas asignadas en este momento.</p>
+        <CollapsibleCard title={`Mis Tareas Pendientes (${tareasEnCurso.length})`} isOpen={isOpenTareas} setIsOpen={setIsOpenTareas}>
+          {tareasEnCurso.length === 0 ? (
+            <p style={{ fontStyle: 'italic', color: '#6b7280' }}>No tienes tareas pendientes o en proceso.</p>
           ) : (
             <ul style={globalStyles.list}>
-              {tareas.map((asignacion, index) => (
-                <li key={index} style={{ ...globalStyles.listItem, flexDirection: 'column', alignItems: 'flex-start', backgroundColor: '#fff', padding: '15px', border: `1px solid ${colors.border}`, borderRadius: '4px', marginBottom: '10px' }}>
+              {tareasEnCurso.map((asignacion, index) => (
+                <li key={index} style={{ ...globalStyles.listItem, flexDirection: 'column', alignItems: 'flex-start', backgroundColor: '#ffffff', padding: '15px', border: '1px solid #e5e7eb', borderRadius: '4px', marginBottom: '10px' }}>
                   
-                  {/* Cambiamos asignacion.tarea.nombre por asignacion.tarea.nombreTareas */}
-                  <h4 style={{ margin: '0 0 8px 0', color: colors.primary }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>
                     {asignacion.tarea?.nombreTareas || 'Tarea sin nombre'}
                   </h4>
                   
-                  {/* Cambiamos el nombre del proyecto anidado */}
                   <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#4b5563' }}>
-                    <strong>Proyecto:</strong> {asignacion.tarea?.proyecto?.nombreProyecto || 'N/A'}
+                    <strong style={{ color: '#374151' }}>Proyecto:</strong> {asignacion.tarea?.proyecto?.nombreProyecto || 'N/A'}
                   </p>
                   
-                  <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
-                    Asignado el: {new Date(asignacion.fechaAsignacion).toLocaleDateString()}
-                  </p>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+                      Asignado el: {new Date(asignacion.fechaAsignacion).toLocaleDateString()}
+                    </p>
+                    {asignacion.tarea?.progreso && (
+                      <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', fontWeight: '500' }}>
+                        {asignacion.tarea.progreso}
+                      </span>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
