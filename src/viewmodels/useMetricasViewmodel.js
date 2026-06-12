@@ -16,26 +16,37 @@ export const useMetricasViewModel = () => {
   const fetchDatos = async () => {
     setLoading(true);
     try {
-      // 2. Descargamos también las tareas globales desde la base de datos
       const [metricasData, proyectosData, tareasData] = await Promise.all([
         MetricasService.getAll(),
         ProyectoService.getProyectos(),
-        TableroService.getTareas().catch(() => []) // Obtenemos todas las tareas
+        TableroService.getTareas().catch(() => []) 
       ]);
 
       const activeMetricas = metricasData || [];
       const todasLasTareas = tareasData || [];
       
       const proyectosConProgreso = (proyectosData || []).map(proyecto => {
-        // 3. Cruzamos los datos: Filtramos solo las tareas que pertenecen a ESTE proyecto
+        
+        // 1. Filtramos tareas del proyecto Y QUE NO ESTÉN ELIMINADAS
         const tareasDelProyecto = todasLasTareas.filter(t => 
-          t.proyecto?.id === proyecto.id || t.proyectoId === proyecto.id
+          (t.proyecto?.id === proyecto.id || t.proyectoId === proyecto.id) &&
+          t.estado === true 
         );
+
 
         const totalTareas = tareasDelProyecto.length;
         
-        // 4. Ahora sí contamos las completadas (usando t.progreso)
-        const tareasCompletadas = tareasDelProyecto.filter(t => t.progreso === 'COMPLETADA').length;
+        // 2. Contamos las completadas dentro de ese universo de tareas activas
+        const tareasCompletadas = tareasDelProyecto.filter(t => {
+          if (!t.progreso) return false;
+          
+          const progresoNormalizado = t.progreso.trim().toUpperCase();
+          
+          return progresoNormalizado === 'COMPLETADA' || 
+                 progresoNormalizado === 'COMPLETADO' || 
+                 progresoNormalizado === 'HECHO' ||
+                 progresoNormalizado === 'FINALIZADA';
+        }).length;
         
         const progreso = totalTareas > 0 ? (tareasCompletadas / totalTareas) * 100 : 0;
 
