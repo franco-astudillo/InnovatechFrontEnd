@@ -15,7 +15,6 @@ export const useTableroViewModel = () => {
     setLoading(true);
     setError(null);
     try {
-      // 1. Descargamos TODA la información en paralelo
       const [resUsuarios, dataProyectos, dataTareas, dataAsignaciones] = await Promise.all([
         api.get('/api/v1/usuarios').catch(() => ({ data: [] })),
         ProyectoService.getProyectos().catch(() => []),
@@ -27,7 +26,6 @@ export const useTableroViewModel = () => {
       setUsuariosList(usuarios);
       setProyectosList(dataProyectos);
 
-      // 2. Enriquecemos la Tarea cruzando los datos correctamente
       const tareasEnriquecidas = dataTareas.map(tarea => {
         const proyectoAsociado = dataProyectos.find(p => p.id === tarea.proyecto?.id || p.id === tarea.proyectoId);
         
@@ -37,7 +35,6 @@ export const useTableroViewModel = () => {
         
         let usuarioAsignado = null;
         if (asignacionAsociada) {
-          // Forzamos la comparación usando String() en ambos lados para evitar desajustes
           usuarioAsignado = usuarios.find(u => 
             String(u.uidFirebase) === String(asignacionAsociada.usuarioId) || 
             String(u.id) === String(asignacionAsociada.usuarioId)
@@ -61,18 +58,31 @@ export const useTableroViewModel = () => {
     }
   };
 
-  // ---HELP PARA ACTUALIZAR MÉTRICAS ---
+  // --- FUNCIÓN  PARA ACTUALIZAR MÉTRICAS HISTÓRICAS ---
   const actualizarPorcentajeMetrica = async (proyectoId) => {
     if (!proyectoId) return;
     
     try {
       const todasLasTareas = await TableroService.getTareas();
+      
+      // 1. Filtramos las tareas del proyecto que NO estén eliminadas
       const tareasDelProyecto = todasLasTareas.filter(t => 
-        (t.proyecto && t.proyecto.id === proyectoId) || t.proyectoId === proyectoId
+        ((t.proyecto && t.proyecto.id === proyectoId) || t.proyectoId === proyectoId) &&
+        t.estado === true
       );
 
       const totalTareas = tareasDelProyecto.length;
-      const completadas = tareasDelProyecto.filter(t => t.progreso === 'Completado').length;
+      
+      // 2. Contamos las completadas con la misma lógica robusta
+      const completadas = tareasDelProyecto.filter(t => {
+        if (!t.progreso) return false;
+        const progresoNormalizado = t.progreso.trim().toUpperCase();
+        return progresoNormalizado === 'COMPLETADA' || 
+               progresoNormalizado === 'COMPLETADO' || 
+               progresoNormalizado === 'HECHO' ||
+               progresoNormalizado === 'FINALIZADA';
+      }).length;
+
       const nuevoPorcentaje = totalTareas === 0 ? 0.0 : parseFloat(((completadas / totalTareas) * 100).toFixed(2));
 
       const metricas = await MetricasService.getAll();
@@ -92,7 +102,6 @@ export const useTableroViewModel = () => {
 
   const agregarTareaYAsignar = async (formData) => {
     try {
-      // 1. Creamos la tarea base
       const tareaPayload = {
         nombreTareas: formData.nombreTareas,
         descripcionTareas: formData.descripcionTareas || "",
@@ -101,32 +110,20 @@ export const useTableroViewModel = () => {
         proyectoId: parseInt(formData.proyectoId)
       };
 
-      console.log("Enviando Tarea al Backend...", tareaPayload);
       const nuevaTarea = await TableroService.crearTarea(tareaPayload);
-      console.log("Respuesta del Backend (Tarea):", nuevaTarea); // <-- AUDITORÍA CLAVE
-
-      // EXTRACCIÓN SEGURA: Si TableroService ya hace return response.data, el id viene directo.
       const idGenerado = nuevaTarea.id;
 
-      // 2. Si hay un usuario seleccionado y el ID es válido, creamos la asignación
       if (formData.usuarioId && idGenerado) {
-        console.log("Creando Asignación para el Usuario:", formData.usuarioId, " en la Tarea:", idGenerado);
-        
         await TableroService.crearAsignacion({
           tareaId: idGenerado,
           usuarioId: String(formData.usuarioId),
           fechaAsignacion: new Date().toISOString().split('T')[0],
           estado: true
         });
-        
-        console.log("Asignación creada exitosamente.");
-      } else {
-        alert("ADVERTENCIA: La Tarea se creó, pero el Backend no devolvió un ID para asignarla a Pepe.");
       }
 
       await cargarTablero();
       
-      // Recalcular métrica
       if (formData.proyectoId) {
         await actualizarPorcentajeMetrica(parseInt(formData.proyectoId));
       }
