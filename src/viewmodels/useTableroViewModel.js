@@ -45,7 +45,7 @@ export const useTableroViewModel = () => {
           ...tarea,
           nombreProyectoAsociado: proyectoAsociado ? proyectoAsociado.nombreProyecto : 'Sin Proyecto',
           nombreResponsable: usuarioAsignado ? usuarioAsignado.nombre : 'No Asignado',
-          uidResponsable: usuarioAsignado ? usuarioAsignado.uidFirebase : null
+          uidResponsable: usuarioAsignado ? (usuarioAsignado.uidFirebase || usuarioAsignado.id) : null
         };
       });
 
@@ -58,33 +58,21 @@ export const useTableroViewModel = () => {
     }
   };
 
-  // --- FUNCIÓN  PARA ACTUALIZAR MÉTRICAS HISTÓRICAS ---
   const actualizarPorcentajeMetrica = async (proyectoId) => {
     if (!proyectoId) return;
-    
     try {
       const todasLasTareas = await TableroService.getTareas();
-      
-      // 1. Filtramos las tareas del proyecto que NO estén eliminadas
       const tareasDelProyecto = todasLasTareas.filter(t => 
-        ((t.proyecto && t.proyecto.id === proyectoId) || t.proyectoId === proyectoId) &&
-        t.estado === true
+        ((t.proyecto && t.proyecto.id === proyectoId) || t.proyectoId === proyectoId) && t.estado === true
       );
-
       const totalTareas = tareasDelProyecto.length;
-      
-      // 2. Contamos las completadas con la misma lógica robusta
       const completadas = tareasDelProyecto.filter(t => {
         if (!t.progreso) return false;
         const progresoNormalizado = t.progreso.trim().toUpperCase();
-        return progresoNormalizado === 'COMPLETADA' || 
-               progresoNormalizado === 'COMPLETADO' || 
-               progresoNormalizado === 'HECHO' ||
-               progresoNormalizado === 'FINALIZADA';
+        return progresoNormalizado === 'COMPLETADA' || progresoNormalizado === 'COMPLETADO' || progresoNormalizado === 'HECHO' || progresoNormalizado === 'FINALIZADA';
       }).length;
 
       const nuevoPorcentaje = totalTareas === 0 ? 0.0 : parseFloat(((completadas / totalTareas) * 100).toFixed(2));
-
       const metricas = await MetricasService.getAll();
       const metricaProyecto = metricas.find(m => m.proyectoId === proyectoId);
 
@@ -96,7 +84,7 @@ export const useTableroViewModel = () => {
         });
       }
     } catch (error) {
-      console.error(`Error de integración: No se pudo recalcular la métrica del proyecto ${proyectoId}`, error);
+      console.error(`Error de integración métricas`, error);
     }
   };
 
@@ -123,14 +111,9 @@ export const useTableroViewModel = () => {
       }
 
       await cargarTablero();
-      
-      if (formData.proyectoId) {
-        await actualizarPorcentajeMetrica(parseInt(formData.proyectoId));
-      }
-
+      if (formData.proyectoId) await actualizarPorcentajeMetrica(parseInt(formData.proyectoId));
       return { success: true };
     } catch (err) {
-      console.error("Error al crear tarea:", err);
       return { success: false, message: "Error interno al crear tarea" };
     }
   };
@@ -138,21 +121,12 @@ export const useTableroViewModel = () => {
   const cambiarProgreso = async (tarea, nuevoProgreso) => {
     try {
       const proyectoIdAsociado = tarea.proyecto?.id || tarea.proyectoId;
-      const tareaModificada = {
-        ...tarea,
-        progreso: nuevoProgreso,
-        proyectoId: proyectoIdAsociado
-      };
+      const tareaModificada = { ...tarea, progreso: nuevoProgreso, proyectoId: proyectoIdAsociado };
       
       await TableroService.modificarTarea(tarea.id, tareaModificada);
       await cargarTablero();
-
-      if (proyectoIdAsociado) {
-        await actualizarPorcentajeMetrica(proyectoIdAsociado);
-      }
-      
+      if (proyectoIdAsociado) await actualizarPorcentajeMetrica(proyectoIdAsociado);
     } catch (err) {
-      console.error("Error al mover tarea:", err);
       alert("Error al actualizar progreso de la tarea.");
     }
   };
@@ -161,17 +135,81 @@ export const useTableroViewModel = () => {
     try {
       const tareaAEliminar = tareas.find(t => t.id === id);
       const proyectoIdAsociado = tareaAEliminar ? (tareaAEliminar.proyecto?.id || tareaAEliminar.proyectoId) : null;
-
       await TableroService.eliminarTarea(id);
       await cargarTablero();
-
-      if (proyectoIdAsociado) {
-        await actualizarPorcentajeMetrica(proyectoIdAsociado);
-      }
-
+      if (proyectoIdAsociado) await actualizarPorcentajeMetrica(proyectoIdAsociado);
       return { success: true };
     } catch (err) {
       return { success: false, message: "Error interno al eliminar" };
+    }
+  };
+
+  const registrarHoras = async (tareaId, usuarioId, horasTrabajadas) => {
+    try {
+      const payload = {
+        tareaId: parseInt(tareaId),
+        usuarioId: String(usuarioId),
+        horasTrabajadas: parseFloat(horasTrabajadas),
+        fechaRegistro: new Date().toISOString().split('T')[0],
+        estado: true
+      };
+      await TableroService.crearRegistroHoras(payload);
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: "Error al registrar las horas." };
+    }
+  };
+
+  const registrarInforme = async (tareaId, usuarioId, enlaceInforme) => {
+    try {
+      const payload = {
+        tareaId: parseInt(tareaId),
+        usuarioId: String(usuarioId),
+        url: enlaceInforme,
+        fechaSubida: new Date().toISOString().split('T')[0],
+        estado: true
+      };
+      await TableroService.crearInforme(payload);
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: "Error al registrar el informe." };
+    }
+  };
+
+  // --- NUEVA LÓGICA DE REASIGNACIÓN (POST, PUT, DELETE) ---
+  const cambiarResponsable = async (tareaId, nuevoUsuarioId) => {
+    try {
+      const dataAsignaciones = await TableroService.getAsignaciones();
+      const asignacionActual = dataAsignaciones.find(a => 
+        (a.tarea && a.tarea.id === tareaId) || a.tareaId === tareaId
+      );
+
+      if (nuevoUsuarioId) {
+        if (asignacionActual) {
+          await TableroService.modificarAsignacion(asignacionActual.id, {
+            ...asignacionActual,
+            usuarioId: String(nuevoUsuarioId),
+            tareaId: tareaId
+          });
+        } else {
+          await TableroService.crearAsignacion({
+            tareaId: tareaId,
+            usuarioId: String(nuevoUsuarioId),
+            fechaAsignacion: new Date().toISOString().split('T')[0],
+            estado: true
+          });
+        }
+      } else {
+        if (asignacionActual) {
+          await TableroService.eliminarAsignacion(asignacionActual.id);
+        }
+      }
+      
+      await cargarTablero();
+      return { success: true };
+    } catch (err) {
+      console.error("Error al reasignar colaborador:", err);
+      return { success: false, message: "Error al actualizar la asignación de la tarea." };
     }
   };
 
@@ -181,6 +219,7 @@ export const useTableroViewModel = () => {
 
   return {
     tareas, proyectosList, usuariosList, loading, error, 
-    cargarTablero, agregarTareaYAsignar, cambiarProgreso, eliminarTarea
+    cargarTablero, agregarTareaYAsignar, cambiarProgreso, eliminarTarea,
+    registrarHoras, registrarInforme, cambiarResponsable
   };
 };
