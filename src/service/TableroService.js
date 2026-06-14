@@ -27,5 +27,23 @@ export const TableroService = {
   crearAsignacion: async (asignacionDTO) => {
     const response = await api.post('/api/v1/asignaciones-tareas', asignacionDTO);
     return response.data;
+  },
+  modificarAsignacion: async (id, asignacionDTO) => {
+    const response = await api.put(`/api/v1/asignaciones-tareas/${id}`, asignacionDTO);
+    return response.data;
+  },
+  eliminarAsignacion: async (id) => {
+    const response = await api.delete(`/api/v1/asignaciones-tareas/${id}`);
+    return response.data;
+  },
+
+  // --- ENDPOINTS DE REGISTRO OPERATIVO ---
+  crearRegistroHoras: async (registroDTO) => {
+    const response = await api.post('/api/v1/registro-horas', registroDTO);
+    return response.data;
+  },
+  crearInforme: async (informeDTO) => {
+    const response = await api.post('/api/v1/informes', informeDTO);
+    return response.data;
   }
 };

@@ -113,7 +113,6 @@ const CrearProyectoView = () => {
               />
             </div>
             
-            {/* MENÚ DESPLEGABLE CORREGIDO: Muestra nombre, obliga a enviar UID */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={globalStyles.label}>Jefe de Proyecto Responsable *</label>
               <select 
@@ -125,8 +124,6 @@ const CrearProyectoView = () => {
               >
                 <option value="">Seleccione un Colaborador</option>
                 {usuariosRecursos.map(u => {
-                  // Interceptamos la variable exacta que contiene el UID de Firebase.
-                  // Si no existe, forzamos un string vacío para que el formulario bloquee el envío.
                   const uidRealDeFirebase = u.uidFirebase || u.uid || u.firebaseUid || "";
                   
                   return (
@@ -206,11 +203,21 @@ const CrearProyectoView = () => {
                   <tr key={p.id} style={{ backgroundColor: modoEdicion === p.id ? '#fef9c3' : 'transparent' }}>
                     <td style={globalStyles.td}><strong>{p.nombreProyecto}</strong></td>
                     <td style={globalStyles.td}>{p.descripcionProyecto || 'Sin descripción'}</td>
+                    
+                    {/* ETIQUETA VISUAL UNIFICADA */}
                     <td style={globalStyles.td}>
-                      <span style={{ fontWeight: 'bold', color: p.activo ? '#166534' : '#991b1b' }}>
+                      <span style={{
+                        padding: '4px 8px', 
+                        borderRadius: '12px', 
+                        fontSize: '12px', 
+                        fontWeight: 'bold',
+                        backgroundColor: p.activo ? '#dcfce7' : '#fef2f2',
+                        color: p.activo ? '#166534' : '#991b1b'
+                      }}>
                         {p.activo ? 'ACTIVO' : 'INACTIVO'}
                       </span>
                     </td>
+
                     <td style={{ ...globalStyles.td, color: colors.primary, fontWeight: '600' }}>{p.jefeNombre}</td>
                     <td style={{ ...globalStyles.td, textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
